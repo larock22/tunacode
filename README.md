@@ -35,15 +35,33 @@
 
 ## 🚀 Quick Start
 
+### One-Line Install (Linux/macOS)
+
+```bash
+# Using curl
+curl -sSL https://raw.githubusercontent.com/alchemiststudiosDOTai/tunacode/master/scripts/install_linux.sh | bash
+
+# Or using wget
+wget -qO- https://raw.githubusercontent.com/alchemiststudiosDOTai/tunacode/master/scripts/install_linux.sh | bash
+```
+
+This creates a virtual environment in `~/.tunacode-venv` and adds the `tunacode` command to your PATH.
+
+### Alternative Install Methods
+
 ```bash
 # Install from PyPI
 pip install tunacode-cli
 
-# Or install globally using pipx (recommended on Linux)
+# Or install globally using pipx (recommended)
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 pipx install tunacode-cli
+```
 
+### Start Using TunaCode
+
+```bash
 # Run setup (first time only)
 tunacode
 
@@ -51,15 +69,6 @@ tunacode
 tunacode
 > Help me refactor this codebase to use async/await
 ```
-
-For a self-contained setup without `pipx`, run the helper script included in
-this repository:
-
-```bash
-./scripts/install_linux.sh
-```
-This creates a virtual environment under `~/.tunacode-venv` and places a wrapper
-in `~/.local/bin` so you can run `tunacode` from anywhere.
 
 ## 📋 Commands
 
