@@ -39,3 +39,6 @@ SIDEKICK.md
 .python-version
 REFACTOR*
 .claude/
+
+# PyPI credentials
+.pypirc
