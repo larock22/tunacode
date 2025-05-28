@@ -1,0 +1,77 @@
+# ───────────────────────── TunaCode/tinyAgent config ─────────────────────────
+# Configuration for tinyAgent integration with TunaCode
+# This config handles both direct API calls and OpenRouter routing
+# -------------------------------------------------------------------
+
+# Default to OpenAI API, can be overridden by OPENAI_BASE_URL env var
+base_url: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+
+# Model configuration
+model:
+  default: "gpt-4o"  # Will be overridden by TunaCode's model selection
+
+# Embedding provider (for future use)
+embedding_provider:
+  provider_type: "openai"
+  model_name: "text-embedding-3-small"
+  api_key: ${OPENAI_API_KEY}
+
+# JSON parsing settings
+parsing:
+  strict_json: false  # Allow fallbacks for better compatibility
+  fallback_parsers:
+    template: true
+    regex: true
+
+# Retry configuration
+retries:
+  max_attempts: 3
+  temperature: { initial: 0.2, increment: 0.3, max: 0.8 }
+  model_escalation:
+    enabled: false  # TunaCode handles model switching
+
+# Dynamic agents settings
+dynamic_agents: 
+  allow_new_tools_by_default: false
+
+# Code execution permissions
+code_execution:
+  allow_dangerous_operations: true
+  allowed_operations:
+    file_operations: true
+    os_operations: true
+    imports: ["os", "sys", "subprocess", "shutil", "pathlib"]
+
+# File operations configuration
+file_operations:
+  output_dir: "."  # Use current directory as TunaCode does
+  allowed_extensions: []  # Allow all extensions like TunaCode
+  max_file_size: 10_485_760  # 10 MB
+  create_subdirs: true
+  allow_overwrite: true
+
+# Proxy settings (disabled by default)
+proxy:
+  enabled: false
+  url: "http://customer-%s-cc-%s:%s@pr.oxylabs.io:7777"
+  username: ${TINYAGENT_PROXY_USERNAME}
+  password: ${TINYAGENT_PROXY_PASSWORD}
+  country: ${TINYAGENT_PROXY_COUNTRY}
+
+# Logging configuration
+logging:
+  level: WARNING  # Less verbose for CLI usage
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers: ["console"]
+
+# Observability settings
+observability:
+  tracing:
+    enabled: false
+    service_name: "tunacode"
+    sampling_rate: 0.1
+    exporter:
+      type: "console"
+    attributes: 
+      environment: "production"
+      version: "0.1.0"

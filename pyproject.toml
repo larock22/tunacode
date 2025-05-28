@@ -26,10 +26,11 @@ classifiers = [
 ]
 dependencies = [
     "prompt_toolkit==3.0.51",
-    "pydantic-ai[logfire]==0.2.6",
+    "tiny_agent_os>=0.1.0",
     "pygments==2.19.1",
     "rich==14.0.0",
     "typer==0.15.3",
+    "pyyaml>=6.0",
 ]
 
 [project.scripts]

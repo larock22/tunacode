@@ -10,7 +10,6 @@ from asyncio.exceptions import CancelledError
 
 from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.application.current import get_app
-from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from tunacode.configuration.settings import ApplicationSettings
 from tunacode.core.agents import main as agent
@@ -183,15 +182,17 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
         await ui.muted("Request cancelled")
     except UserAbortError:
         await ui.muted("Operation aborted.")
-    except UnexpectedModelBehavior as e:
-        error_message = str(e)
-        await ui.muted(error_message)
-        patch_tool_messages(error_message, state_manager)
     except Exception as e:
-        # Wrap unexpected exceptions in AgentError for better tracking
-        agent_error = AgentError(f"Agent processing failed: {str(e)}")
-        agent_error.__cause__ = e  # Preserve the original exception chain
-        await ui.error(str(e))
+        # Check if this is a model behavior error from tinyAgent
+        if "model" in str(e).lower() or "unexpected" in str(e).lower():
+            error_message = str(e)
+            await ui.muted(error_message)
+            patch_tool_messages(error_message, state_manager)
+        else:
+            # Wrap unexpected exceptions in AgentError for better tracking
+            agent_error = AgentError(f"Agent processing failed: {str(e)}")
+            agent_error.__cause__ = e  # Preserve the original exception chain
+            await ui.error(str(e))
     finally:
         await ui.spinner(False, state_manager.session.spinner, state_manager)
         state_manager.session.current_task = None
