@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from tinyagent.decorators import tool
+from tinyagent import tool
 
 from tunacode.exceptions import ToolExecutionError
 from tunacode.ui import console as ui

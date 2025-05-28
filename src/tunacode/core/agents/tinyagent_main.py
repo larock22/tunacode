@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from tinyagent.react.react_agent import ReactAgent
+from tinyagent import ReactAgent
 
 from tunacode.core.state import StateManager
 from tunacode.tools.tinyagent_tools import read_file, run_command, update_file, write_file
@@ -58,12 +58,11 @@ def get_or_create_react_agent(model: ModelName, state_manager: StateManager) -> 
                 if state_manager.session.user_config["env"].get(key_name):
                     os.environ[key_name] = state_manager.session.user_config["env"][key_name]
 
-        # Create new ReactAgent with the actual model name
-        agent = ReactAgent(model_override=actual_model)
-
-        # Register our tools
-        for fn in (read_file, write_file, update_file, run_command):
-            agent.register_tool(fn._tool)
+        # Create new ReactAgent with the actual model name and tools
+        agent = ReactAgent(
+            model_override=actual_model,
+            tools=[read_file, write_file, update_file, run_command]
+        )
 
         # Add MCP compatibility method
         @asynccontextmanager
@@ -106,7 +105,12 @@ async def process_request_with_tinyagent(
 
     try:
         # Run the agent with the message
-        result = await agent.run_react(message)
+        # The new API's run() method might be synchronous based on the examples
+        import asyncio
+        if asyncio.iscoroutinefunction(agent.run):
+            result = await agent.run(message)
+        else:
+            result = agent.run(message)
 
         # Update message history in state_manager
         # This will need to be adapted based on how tinyAgent returns messages
