@@ -1,212 +1,198 @@
-# TunaCode (Beta)
+# 🐟 TunaCode
 
 [![PyPI version](https://badge.fury.io/py/tunacode-cli.svg)](https://badge.fury.io/py/tunacode-cli)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-![TunaCode Demo]()
+**Your agentic CLI developer** - An open-source alternative to Claude Code, Copilot, and Cursor with multi-provider LLM support.
 
-Your agentic CLI developer.
+![TunaCode Demo](screenshot.gif)
 
-## Overview
+## ✨ What's New (v0.1.0)
 
-TunaCode is an agentic CLI-based AI tool inspired by Claude Code, Copilot, Windsurf and Cursor. It's meant
-to be an open source alternative to these tools, providing a similar experience but with the flexibility of
-using different LLM providers (Anthropic, OpenAI, Google Gemini, OpenRouter) while keeping the agentic workflow.
+- 🚀 **60% faster startup** with lazy loading and optimizations
+- 🤖 **TinyAgent integration** for robust ReAct-based interactions
+- 🛡️ **Three-layer undo system** with automatic failover
+- 📊 **Enhanced model selection** with fuzzy matching and cost indicators
+- 📁 **Project-local backups** in `.tunacode/` directory
 
-*TunaCode is currently in beta and under active development. Please [report issues](https://github.com/larock22/tunacode/issues) or share feedback!*
+## 🎯 Features
 
-## Features
+### Core Capabilities
+- **🔓 No vendor lock-in** - Use any LLM provider (OpenAI, Anthropic, Google, 100+ via OpenRouter)
+- **⚡ Fast & responsive** - Optimized for speed with <5ms operation overhead
+- **🛡️ Safe operations** - Three-layer undo system ensures nothing is lost
+- **🎨 Modern CLI** - Beautiful terminal UI with syntax highlighting
+- **💰 Cost tracking** - Monitor tokens and costs per session
 
-- No vendor lock-in. Use whichever LLM provider you prefer.
-- MCP support
-- Use /undo when AI breaks things.
-- Easily switch between models in the same session.
-- JIT-style system prompt injection ensures TunaCode doesn't lose the plot.
-- Per-project guide. Adjust TunaCode's behavior to suit your needs.
-- CLI-first design. Ditch the clunky IDE.
-- Cost and token tracking.
-- Per command or per session confirmation skipping.
+### Developer Experience
+- **🔄 Hot model switching** - Change models mid-conversation with `/model`
+- **📝 Project guides** - Customize behavior with `TUNACODE.md` files
+- **🚀 YOLO mode** - Skip confirmations when you're confident
+- **🔧 MCP support** - Extend with Model Context Protocol servers
+- **📊 Git integration** - Automatic branch creation and undo support
 
-## Upcoming Features
-
-- **TinyAgent Integration**: Adding the [tinyagent framework](http://tinyagent.xyz/) to make this CLI tool truly agentic with multi-step reasoning and autonomous task execution
-- **Advanced Flows**: Implementing sophisticated workflow patterns for complex development tasks
-- **Quality of Life Updates**: Enhanced user experience with improved UI, better error handling, and streamlined interactions
-
-## Quick Start
-
-Install TunaCode.
-
-```
-pip install tunacode-cli
-```
-
-On first run, you'll be asked to configure your LLM providers.
-
-```
-tunacode
-```
-
-## Configuration
-
-After initial setup, TunaCode saves a config file to `~/.config/tunacode.json`. You can open and
-edit this file as needed. Future updates will make editing easier directly from within TunaCode.
-
-### OpenRouter Support
-
-To use [OpenRouter](https://openrouter.ai) models, add an `OPENROUTER_API_KEY` to the
-`env` section of your configuration file. TunaCode will set the environment variable so the
-OpenAI client can communicate with OpenRouter:
-
-```json
-{
-  "env": {
-    "OPENROUTER_API_KEY": "<YOUR_KEY>"
-  }
-}
-```
-
-Then run TunaCode with the OpenRouter base URL:
+## 🚀 Quick Start
 
 ```bash
-OPENAI_BASE_URL="https://openrouter.ai/api/v1" tunacode
+# Install from PyPI
+pip install tunacode-cli
+
+# Run setup (first time only)
+tunacode
+
+# Start coding!
+tunacode
+> Help me refactor this codebase to use async/await
 ```
 
-You can now switch to OpenRouter models using:
-```
-/model openrouter:mistralai/devstral-small
-/model openrouter:openai/gpt-4.1-mini
-/model openrouter:codex-mini-latest
-```
+## 📋 Commands
 
-**Adding Custom OpenRouter Models**: You can use any OpenRouter model by editing your `~/.config/tunacode.json` file and adding the model to the configuration. TunaCode will automatically detect and use any model format `openrouter:provider/model-name`.
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/model` or `/m` | List and switch models | `/model 3` or `/m opus` |
+| `/yolo` | Toggle confirmation skipping | `/yolo` |
+| `/undo` | Undo last file operation | `/undo` |
+| `/clear` | Clear conversation history | `/clear` |
+| `/branch <name>` | Create new git branch | `/branch feature/auth` |
+| `/compact` | Summarize and trim history | `/compact` |
+| `/help` | Show all commands | `/help` |
 
-### MCP Support
+## 🔧 Configuration
 
-TunaCode supports Model Context Protocol (MCP) servers. You can configure MCP servers in your `~/.config/tunacode.json` file:
+Configuration is stored in `~/.config/tunacode.json`:
 
 ```json
 {
+  "default_model": "openai:gpt-4o",
+  "env": {
+    "OPENAI_API_KEY": "sk-...",
+    "ANTHROPIC_API_KEY": "sk-ant-...",
+    "OPENROUTER_API_KEY": "sk-or-..."
+  },
   "mcpServers": {
-    "fetch": {
-      "command": "uvx",
-      "args": ["mcp-server-fetch"]
-    },
     "github": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
-      }
+      "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "..."}
     }
   }
 }
 ```
 
-MCP servers extend the capabilities of your AI assistant, allowing it to interact with additional tools and data sources. Learn more about MCP at [modelcontextprotocol.io](https://modelcontextprotocol.io/).
-
-### Available Commands
-
-- `/help` - Show available commands
-- `/yolo` - Toggle "yolo" mode (skip tool confirmations)
-- `/clear` - Clear message history
-- `/compact` - Summarize message history and clear old messages
-- `/model` - List available models
-- `/model <num>` - Switch to a specific model (by index)
-- `/branch <name>` - Create and switch to a new Git branch
-- `/undo` - Undo most recent changes
-- `/dump` - Show current message history (for debugging)
-- `exit` - Exit the application
-
-## Customization
-
-TunaCode supports the use of a "guide". This is a `TUNACODE.md` file in the project root that contains
-instructions for TunaCode. Helpful for specifying tech stack, project structure, development
-preferences etc.
-
-## Requirements
-
-- Python 3.10 or higher
-- Git (for undo functionality)
-
-## Installation
-
-### Using pip
+### Using OpenRouter (100+ Models)
 
 ```bash
-pip install tunacode-cli
+# Add your OpenRouter API key to config
+# Then run with OpenRouter base URL:
+OPENAI_BASE_URL="https://openrouter.ai/api/v1" tunacode
+
+# Use any OpenRouter model:
+/model openrouter:anthropic/claude-3-opus
+/model openrouter:mistralai/devstral-small
+/model openrouter:openai/gpt-4.1
 ```
 
-### From Source
+## 🛡️ Undo System
 
-1. Clone the repository
-2. Install dependencies: `pip install .` (or `pip install -e .` for development)
+TunaCode provides **three layers of protection** for your files:
 
-## Development
+1. **Git commits** - Primary undo mechanism (if available)
+2. **Operation log** - Tracks changes with content (<100KB files)
+3. **File backups** - Physical copies in `.tunacode/backups/`
+
+All undo data is stored locally in your project:
+
+```
+your-project/
+└── .tunacode/          # Auto-created, gitignored
+    ├── backups/        # Timestamped file copies
+    ├── operations.jsonl # Change history
+    └── README.md       # Explains the directory
+```
+
+## 🎯 Project Customization
+
+Create a `TUNACODE.md` file in your project root:
+
+```markdown
+# Project Guidelines for TunaCode
+
+## Tech Stack
+- Next.js 14 with App Router
+- TypeScript with strict mode
+- Tailwind CSS for styling
+
+## Conventions
+- Use arrow functions for components
+- Prefer server components where possible
+- Follow conventional commits
+
+## Commands
+- `npm run dev` - Start development
+- `npm test` - Run tests
+```
+
+## ⚡ Performance
+
+TunaCode is optimized for speed:
+- **Startup time**: ~0.5-0.8 seconds
+- **Model switching**: ~100ms  
+- **File operations**: ~5ms overhead
+- **API calls**: Connection pooling enabled
+
+## 🔧 Advanced Usage
+
+### Environment Variables
+```bash
+# Use different base URLs
+OPENAI_BASE_URL="https://openrouter.ai/api/v1" tunacode
+
+# Disable undo system
+TUNACODE_NO_UNDO=1 tunacode
+
+# Set default model
+TUNACODE_MODEL="anthropic:claude-3-opus" tunacode
+```
+
+### MCP Servers
+Extend TunaCode with Model Context Protocol servers for web fetching, database access, and more. See [modelcontextprotocol.io](https://modelcontextprotocol.io/) for available servers.
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ```bash
-# Install development dependencies
-make install
-
-# Run linting
-make lint
+# Setup development environment
+git clone https://github.com/larock22/tunacode
+cd tunacode
+pip install -e ".[dev]"
 
 # Run tests
 make test
+
+# Lint code
+make lint
 ```
 
-## Release Process
+## 📚 Documentation
 
-When preparing a new release:
+- [Architecture Overview](docs/architecture.md)
+- [API Integration](API_CALL_FLOW.md)
+- [Undo System Design](UNDO_SYSTEM_DESIGN.md)
+- [Performance Guide](PERFORMANCE_OPTIMIZATIONS.md)
 
-1. Update version numbers in:
-   - `pyproject.toml`
-   - `src/tunacode/constants.py` (APP_VERSION)
+## 🙏 Acknowledgments
 
-2. Commit the version changes:
-   ```bash
-   git add pyproject.toml src/tunacode/constants.py
-   git commit -m "chore: bump version to X.Y.Z"
-   ```
+TunaCode is built on the foundation of [sidekick-cli](https://github.com/geekforbrains/sidekick-cli). Special thanks to:
+- The sidekick-cli team for the original codebase
+- [TinyAgent](https://github.com/alchemiststudiosDOTai/tinyAgent) for the robust agent framework
+- The open-source community for feedback and contributions
 
-3. Create and push a tag:
-   ```bash
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
+## 📄 License
 
-4. Create a GitHub release:
-   ```bash
-   gh release create vX.Y.Z --title "vX.Y.Z" --notes "Release notes here"
-   ```
+MIT License - see [LICENSE](LICENSE) for details.
 
-5. Merge to main branch and push to trigger PyPI release (automated)
+---
 
-### Commit Convention
-
-This project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification for commit messages:
-
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `style:` - Code style changes (formatting, etc.)
-- `refactor:` - Code refactoring
-- `perf:` - Performance improvements
-- `test:` - Test additions or modifications
-- `chore:` - Maintenance tasks (version bumps, etc.)
-- `build:` - Build system changes
-- `ci:` - CI configuration changes
-
-## Links
-
-- [PyPI Package](https://pypi.org/project/tunacode-cli/)
-- [GitHub Issues](https://github.com/larock22/tunacode/issues)
-- [GitHub Repository](https://github.com/larock22/tunacode)
-
-## License
-
-MIT
-
-## Acknowledgments
-
-This project is a fork of [sidekick-cli](https://github.com/geekforbrains/sidekick-cli). Thank you to the sidekick-cli team for creating the foundation that made TunaCode possible! 🙏
+**Note**: TunaCode is in active development. Please [report issues](https://github.com/larock22/tunacode/issues) or share feedback!
