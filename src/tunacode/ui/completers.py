@@ -10,17 +10,23 @@ from ..cli.commands import CommandRegistry
 
 
 class CommandCompleter(Completer):
-    """Completer for slash commands."""
+    """Completer for slash commands and their arguments."""
     
     def __init__(self, command_registry: Optional[CommandRegistry] = None):
         self.command_registry = command_registry
+        self._model_selector = None
     
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        """Get completions for slash commands."""
+        """Get completions for slash commands and model names."""
         # Get the text before cursor
         text = document.text_before_cursor
+        
+        # Check if we're completing model names after /model or /m command
+        if self._should_complete_model_names(text):
+            yield from self._get_model_completions(document, text)
+            return
         
         # Check if we're at the start of a line or after whitespace
         if text and not text.isspace() and text[-1] != '\n':
@@ -45,7 +51,7 @@ class CommandCompleter(Completer):
         else:
             # Fallback list of commands
             command_names = ['/help', '/clear', '/dump', '/yolo', '/undo', 
-                           '/branch', '/compact', '/model', '/init']
+                           '/branch', '/compact', '/model', '/m', '/init']
         
         # Get the partial command (without /)
         partial = word_before_cursor[1:].lower()
@@ -58,6 +64,51 @@ class CommandCompleter(Completer):
                     start_position=-len(word_before_cursor),
                     display=cmd,
                     display_meta='command'
+                )
+    
+    def _should_complete_model_names(self, text: str) -> bool:
+        """Check if we should complete model names."""
+        # Look for /model or /m command followed by space
+        import re
+        pattern = r'(?:^|\n)\s*(?:/model|/m)\s+\S*$'
+        return bool(re.search(pattern, text))
+    
+    def _get_model_completions(self, document: Document, text: str) -> Iterable[Completion]:
+        """Get completions for model names."""
+        # Lazy import and cache
+        if self._model_selector is None:
+            try:
+                from ..cli.model_selector import ModelSelector
+                self._model_selector = ModelSelector()
+            except ImportError:
+                return
+        
+        # Get the partial model name
+        word_before_cursor = document.get_word_before_cursor(WORD=True)
+        partial = word_before_cursor.lower()
+        
+        # Yield model short names and indices
+        seen = set()
+        for i, model in enumerate(self._model_selector.models):
+            # Complete by index
+            index_str = str(i)
+            if index_str.startswith(partial) and index_str not in seen:
+                seen.add(index_str)
+                yield Completion(
+                    text=index_str,
+                    start_position=-len(word_before_cursor),
+                    display=f"{index_str} - {model.display_name}",
+                    display_meta=model.provider.value[2]
+                )
+            
+            # Complete by short name
+            if model.short_name.lower().startswith(partial) and model.short_name not in seen:
+                seen.add(model.short_name)
+                yield Completion(
+                    text=model.short_name,
+                    start_position=-len(word_before_cursor),
+                    display=f"{model.short_name} - {model.display_name}",
+                    display_meta=model.provider.value[2]
                 )
 
 

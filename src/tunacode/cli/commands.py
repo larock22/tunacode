@@ -388,45 +388,103 @@ class ModelCommand(SimpleCommand):
         super().__init__(
             CommandSpec(
                 name="model",
-                aliases=["/model"],
-                description="List models or select a model (e.g., /model 3 or /model 3 default)",
+                aliases=["/model", "/m"],
+                description="List and select AI models interactively",
                 category=CommandCategory.MODEL,
             )
         )
 
     async def execute(self, args: CommandArgs, context: CommandContext) -> Optional[str]:
+        from .model_selector import ModelSelector
+        
+        selector = ModelSelector()
+        
         if not args:
-            # No arguments - list models
-            await ui.models(context.state_manager)
+            # No arguments - show enhanced model list
+            await self._show_model_list(selector, context.state_manager)
             return None
-
-        # Parse model index
-        try:
-            model_index = int(args[0])
-        except ValueError:
-            await ui.error(f"Invalid model index: {args[0]}")
+        
+        # Find model by query (index, name, or fuzzy match)
+        query = args[0]
+        model_info = selector.find_model(query)
+        
+        if not model_info:
+            # Try to provide helpful suggestions
+            await ui.error(f"Model '{query}' not found")
+            await ui.muted("Try: /model (to list all), or use a number 0-18, or model name like 'opus' or 'gpt-4'")
             return None
-
-        # Get model list
-        model_registry = ModelRegistry()
-        models = list(model_registry.list_models().keys())
-        if model_index < 0 or model_index >= len(models):
-            await ui.error(f"Model index {model_index} out of range")
-            return None
-
+        
         # Set the model
-        model = models[model_index]
-        context.state_manager.session.current_model = model
-
+        context.state_manager.session.current_model = model_info.id
+        
         # Check if setting as default
         if len(args) > 1 and args[1] == "default":
-            utils.user_configuration.set_default_model(model, context.state_manager)
-            await ui.muted("Updating default model")
+            utils.user_configuration.set_default_model(model_info.id, context.state_manager)
+            await ui.success(f"Set default model: {model_info.display_name} {model_info.provider.value[2]}")
             return "restart"
         else:
-            # Show success message with the new model
-            await ui.success(f"Switched to model: {model}")
+            # Show success message with model details
+            cost_emoji = selector.get_cost_emoji(model_info.cost_tier)
+            await ui.success(
+                f"Switched to: {model_info.display_name} {model_info.provider.value[2]} {cost_emoji}\n"
+                f"  → {model_info.description}"
+            )
             return None
+    
+    async def _show_model_list(self, selector: ModelSelector, state_manager) -> None:
+        """Show enhanced model list grouped by provider."""
+        from rich.table import Table
+        from rich.text import Text
+        
+        # Create table
+        table = Table(show_header=True, box=None, padding=(0, 2))
+        table.add_column("ID", style="dim", width=3)
+        table.add_column("Model", style="bold")
+        table.add_column("Short", style="cyan")
+        table.add_column("Description", style="dim")
+        table.add_column("Cost", justify="center", width=4)
+        
+        # Current model
+        current_model = state_manager.session.current_model if state_manager else None
+        
+        # Add models grouped by provider
+        model_index = 0
+        grouped = selector.get_models_by_provider()
+        
+        for provider in [p for p in grouped if grouped[p]]:  # Only show providers with models
+            # Add provider header
+            table.add_row(
+                "",
+                Text(f"{provider.value[2]} {provider.value[1]}", style="bold magenta"),
+                "",
+                "",
+                ""
+            )
+            
+            # Add models for this provider
+            for model in grouped[provider]:
+                is_current = model.id == current_model
+                style = "bold green" if is_current else ""
+                
+                table.add_row(
+                    str(model_index),
+                    Text(model.display_name + (" ← current" if is_current else ""), style=style),
+                    model.short_name,
+                    model.description,
+                    selector.get_cost_emoji(model.cost_tier)
+                )
+                model_index += 1
+        
+        # Show the table
+        await ui.panel(
+            "Available Models",
+            table,
+            border_style="cyan"
+        )
+        
+        # Show usage hints
+        await ui.muted("\n💡 Usage: /model <number|name> [default]")
+        await ui.muted("   Examples: /model 3, /model opus, /model gpt-4 default")
 
 
 @dataclass
