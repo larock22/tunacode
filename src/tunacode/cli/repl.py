@@ -213,7 +213,7 @@ async def repl(state_manager: StateManager):
     await ui.muted("→ Use with caution! This tool can modify your codebase")
     await ui.muted(f"→ Model loaded: {state_manager.session.current_model}")
     await ui.line()
-    await ui.success("ready to hack...")
+    await ui.success("✓ Ready to code...")
     await ui.line()
 
     instance = agent.get_or_create_agent(state_manager.session.current_model, state_manager)

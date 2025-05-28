@@ -1,11 +1,13 @@
 """TinyAgent tool implementations with decorators."""
 
 from typing import Optional
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 from tinyagent import tool
 
 from tunacode.exceptions import ToolExecutionError
-from tunacode.ui import console as ui
 
 # Import the existing tool classes to reuse their logic
 from .read_file import ReadFileTool
@@ -14,8 +16,29 @@ from .update_file import UpdateFileTool
 from .write_file import WriteFileTool
 
 
+def _get_ui():
+    """Lazy import of UI to avoid circular dependencies."""
+    from tunacode.ui import console as ui
+    return ui
+
+
+def _run_async_in_thread(coro):
+    """Run an async coroutine in a new thread with its own event loop."""
+    def run_in_new_loop():
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        try:
+            return new_loop.run_until_complete(coro)
+        finally:
+            new_loop.close()
+    
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(run_in_new_loop)
+        return future.result()
+
+
 @tool
-async def read_file(filepath: str) -> str:
+def read_file(filepath: str) -> str:
     """Read the contents of a file.
 
     Args:
@@ -27,9 +50,10 @@ async def read_file(filepath: str) -> str:
     Raises:
         Exception: If file cannot be read.
     """
-    tool_instance = ReadFileTool(ui)
+    tool_instance = ReadFileTool(_get_ui())
     try:
-        result = await tool_instance.execute(filepath)
+        # Always run in a separate thread to avoid deadlocks
+        result = _run_async_in_thread(tool_instance.execute(filepath))
         return result
     except ToolExecutionError as e:
         # tinyAgent expects exceptions to be raised, not returned as strings
@@ -37,7 +61,7 @@ async def read_file(filepath: str) -> str:
 
 
 @tool
-async def write_file(filepath: str, content: str) -> str:
+def write_file(filepath: str, content: str) -> str:
     """Write content to a file.
 
     Args:
@@ -50,16 +74,17 @@ async def write_file(filepath: str, content: str) -> str:
     Raises:
         Exception: If file cannot be written.
     """
-    tool_instance = WriteFileTool(ui)
+    tool_instance = WriteFileTool(_get_ui())
     try:
-        result = await tool_instance.execute(filepath, content)
+        # Always run in a separate thread to avoid deadlocks
+        result = _run_async_in_thread(tool_instance.execute(filepath, content))
         return result
     except ToolExecutionError as e:
         raise Exception(str(e))
 
 
 @tool
-async def update_file(filepath: str, old_content: str, new_content: str) -> str:
+def update_file(filepath: str, old_content: str, new_content: str) -> str:
     """Update specific content in a file.
 
     Args:
@@ -73,16 +98,17 @@ async def update_file(filepath: str, old_content: str, new_content: str) -> str:
     Raises:
         Exception: If file cannot be updated.
     """
-    tool_instance = UpdateFileTool(ui)
+    tool_instance = UpdateFileTool(_get_ui())
     try:
-        result = await tool_instance.execute(filepath, old_content, new_content)
+        # Always run in a separate thread to avoid deadlocks
+        result = _run_async_in_thread(tool_instance.execute(filepath, old_content, new_content))
         return result
     except ToolExecutionError as e:
         raise Exception(str(e))
 
 
 @tool
-async def run_command(command: str, timeout: Optional[int] = None) -> str:
+def run_command(command: str, timeout: Optional[int] = None) -> str:
     """Run a shell command.
 
     Args:
@@ -95,9 +121,10 @@ async def run_command(command: str, timeout: Optional[int] = None) -> str:
     Raises:
         Exception: If command fails.
     """
-    tool_instance = RunCommandTool(ui)
+    tool_instance = RunCommandTool(_get_ui())
     try:
-        result = await tool_instance.execute(command, timeout)
+        # Always run in a separate thread to avoid deadlocks
+        result = _run_async_in_thread(tool_instance.execute(command, timeout))
         return result
     except ToolExecutionError as e:
         raise Exception(str(e))

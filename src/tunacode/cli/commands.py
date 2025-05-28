@@ -20,6 +20,7 @@ class CommandCategory(Enum):
     DEVELOPMENT = "development"
     MODEL = "model"
     DEBUG = "debug"
+    CONFIG = "config"
 
 
 class Command(ABC):
@@ -394,6 +395,7 @@ class ModelCommand(SimpleCommand):
 
     async def execute(self, args: CommandArgs, context: CommandContext) -> Optional[str]:
         from tunacode.cli.model_selector import ModelSelector
+        from tunacode.utils.config_sync import force_sync_to_model
 
         selector = ModelSelector()
 
@@ -417,6 +419,9 @@ class ModelCommand(SimpleCommand):
 
         # Set the model
         context.state_manager.session.current_model = model_info.id
+        
+        # Force sync both configs to this model
+        force_sync_to_model(model_info.id, context.state_manager)
 
         # Check if setting as default
         if len(args) > 1 and args[1] == "default":
@@ -485,6 +490,31 @@ class ModelCommand(SimpleCommand):
         # Show usage hints
         await ui.muted("\n💡 Usage: /model <number|name> [default]")
         await ui.muted("   Examples: /model 3, /model opus, /model gpt-4 default")
+
+
+class VerboseCommand(SimpleCommand):
+    """Toggle verbose mode for agent output."""
+
+    def __init__(self):
+        super().__init__(
+            CommandSpec(
+                name="verbose",
+                aliases=["/verbose"],
+                description="Toggle verbose mode (show/hide agent reasoning)",
+                category=CommandCategory.CONFIG,
+            )
+        )
+
+    async def execute(self, args: List[str], context: CommandContext) -> CommandResult:
+        """Handle verbose mode toggle."""
+        context.state_manager.session.verbose = not context.state_manager.session.verbose
+        status = "ON" if context.state_manager.session.verbose else "OFF"
+        await ui.success(f"Verbose mode: {status}")
+        if context.state_manager.session.verbose:
+            await ui.muted("Agent reasoning and debug output will be shown")
+        else:
+            await ui.muted("Agent reasoning and debug output will be hidden")
+        return None
 
 
 @dataclass
@@ -573,6 +603,7 @@ class CommandRegistry:
             # TunaCodeCommand,  # TODO: Temporarily disabled
             CompactCommand,
             ModelCommand,
+            VerboseCommand,  # Add the verbose command here
         ]
 
         # Register all discovered commands

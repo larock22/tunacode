@@ -51,4 +51,13 @@ def get_mcp_servers(state_manager: "StateManager") -> MCPServers:
 def set_default_model(model_name: ModelName, state_manager: "StateManager") -> bool:
     """Set the default model in the user config and save"""
     state_manager.session.user_config["default_model"] = model_name
+    
+    # Sync both configs to ensure they match
+    try:
+        from tunacode.utils.config_sync import force_sync_to_model
+        force_sync_to_model(model_name, state_manager)
+    except ImportError:
+        # Handle case where config_sync is not available
+        pass
+    
     return save_config(state_manager)

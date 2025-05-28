@@ -29,6 +29,7 @@ class SessionState:
     device_id: Optional[DeviceId] = None
     input_sessions: InputSessions = field(default_factory=dict)
     current_task: Optional[Any] = None
+    verbose: bool = False  # Control debug output like COT reasoning
 
 
 class StateManager:

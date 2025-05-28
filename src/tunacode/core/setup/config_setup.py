@@ -64,7 +64,7 @@ class ConfigSetup(BaseSetup):
 
         # Check if the configured model still exists
         default_model = self.state_manager.session.user_config["default_model"]
-        if not self.model_registry.get_model(default_model):
+        if not (self.model_registry.get_model(default_model) or default_model.startswith("openrouter:")):
             # If model not found, run the onboarding again
             await ui.panel(
                 "Model Not Found",
@@ -90,7 +90,8 @@ class ConfigSetup(BaseSetup):
 
         # Check that the default model is valid
         default_model = self.state_manager.session.user_config["default_model"]
-        if not self.model_registry.get_model(default_model):
+        # Allow openrouter models even if not in registry (dynamic catalog)
+        if not (self.model_registry.get_model(default_model) or default_model.startswith("openrouter:")):
             return False
 
         return True
@@ -127,13 +128,13 @@ class ConfigSetup(BaseSetup):
         # Step 1: Ask for base URL
         base_url = await ui.input(
             "step1",
-            pretext="  API Base URL (press Enter for OpenAI): ",
-            default="https://api.openai.com/v1",
+            pretext="  API Base URL (press Enter for OpenRouter): ",
+            default="https://openrouter.ai/api/v1",
             state_manager=self.state_manager,
         )
         base_url = base_url.strip()
         if not base_url:
-            base_url = "https://api.openai.com/v1"
+            base_url = "https://openrouter.ai/api/v1"
 
         # Step 2: Ask for API key
         if "openrouter.ai" in base_url.lower():
