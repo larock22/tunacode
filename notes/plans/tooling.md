@@ -339,3 +339,209 @@ These are UI-only warnings that can be safely ignored.
 5. **Command system** - Properly integrated VerboseCommand class
 
 All tools now work reliably without hanging, and users have control over debug output verbosity.
+
+## Tool Confirmation System Fix (2025-01-16)
+
+### **The Problem**
+
+After migrating to TinyAgent, the tool confirmation system (1/2/3 options) stopped working because:
+
+- TinyAgent calls tools directly without going through our `_tool_handler` callback
+- The `tool_callback` parameter in `process_request_with_tinyagent` was ignored
+- Users couldn't approve/reject tool operations
+- YOLO mode had no effect
+
+### **The Solution**
+
+Added confirmation logic directly into each TinyAgent tool wrapper:
+
+```python
+# Global state management (hacky but necessary)
+def _get_state_manager():
+    """Get the global state manager instance."""
+    return getattr(_get_state_manager, '_instance', None)
+
+def _set_state_manager(state_manager):
+    """Set the global state manager instance."""
+    _get_state_manager._instance = state_manager
+
+# Confirmation handler
+def _handle_confirmation(tool_name: str, args: dict) -> bool:
+    """Handle tool confirmation synchronously."""
+    state_manager = _get_state_manager()
+    if not state_manager:
+        return True  # Backward compatibility
+
+    tool_handler = ToolHandler(state_manager)
+
+    # Check if confirmation is needed (respects YOLO mode)
+    if not tool_handler.should_confirm(tool_name):
+        # Log tool execution
+        display_args = format_args_for_display(args)
+        print(f"● {tool_name}({display_args})")
+        return True
+
+    # Show confirmation UI with 1/2/3 options
+    request = tool_handler.create_confirmation_request(tool_name, args)
+    tool_ui = ToolUI()
+    response = tool_ui.show_sync_confirmation(request)
+
+    return tool_handler.process_confirmation(response, tool_name)
+```
+
+Each tool now checks for confirmation:
+
+```python
+@tool
+def write_file(filepath: str, content: str) -> str:
+    # Handle confirmation BEFORE execution
+    if not _handle_confirmation("write_file", {"filepath": filepath, "content": content}):
+        raise Exception("User rejected the operation")
+
+    # Continue with tool execution...
+```
+
+### **Features Restored**
+
+- ✅ **1/2/3 confirmation prompts** - Users can approve, skip future confirmations, or reject
+- ✅ **YOLO mode** (`/yolo`) - Skips all confirmations when enabled
+- ✅ **Tool execution logging** - Shows tool name and args when executed
+- ✅ **Per-tool memory** - Option 2 remembers "don't ask again" choices
+- ✅ **Proper diffs** - update_file shows visual diffs in confirmations
+
+### **Implementation Notes**
+
+- State manager is set globally when ReactAgent is created
+- Tools run in sync context, so we use `show_sync_confirmation()`
+- Maintains all previous confirmation behavior from pydantic-ai version
+- Works within TinyAgent's synchronous tool execution model
+
+## Spinner Management Fix (2025-01-16)
+
+### **The Problem**
+
+After implementing confirmations, the "Thinking..." spinner was:
+
+- Continuing to run during confirmation prompts
+- Blocking user input (couldn't type 1/2/3)
+- Making Ctrl+C ineffective
+- Creating a poor user experience
+
+### **The Solution**
+
+Added proper spinner management in `_handle_confirmation`:
+
+```python
+def _handle_confirmation(tool_name: str, args: dict) -> bool:
+    # ... setup code ...
+
+    # STOP THE SPINNER BEFORE CONFIRMATION
+    spinner = state_manager.session.spinner
+    spinner_was_running = False
+    if spinner and hasattr(spinner, 'stop'):
+        try:
+            spinner.stop()
+            spinner_was_running = True
+        except:
+            pass
+
+    try:
+        # Show confirmation UI (user can now type)
+        response = tool_ui.show_sync_confirmation(request)
+        result = tool_handler.process_confirmation(response, tool_name)
+    finally:
+        # RESTART THE SPINNER AFTER CONFIRMATION
+        if spinner_was_running and spinner:
+            try:
+                spinner.start()
+            except:
+                pass
+
+    return result
+```
+
+### **Additional Improvements**
+
+1. **Immediate feedback** - Tools print their name when called
+2. **Clean logging** - Shows `● tool_name('filepath')` format
+3. **No double printing** - Removed duplicate logs
+4. **Proper state tracking** - Only restarts spinner if it was running
+
+### **Result**
+
+- ✅ Users can type 1/2/3 during confirmations
+- ✅ Ctrl+C works to cancel operations
+- ✅ Spinner properly stops/starts around user input
+- ✅ Clean visual feedback throughout the process
+
+## Spinner Visibility When Verbose OFF (2025-01-16)
+
+### **The Issue**
+
+When `verbose=False`, the spinner doesn't appear because:
+
+- `redirect_stdout/stderr` captures ALL output including the spinner
+- Users have no visual feedback that processing is happening
+- It's hard to tell if the agent is thinking or frozen
+
+### **The Workaround**
+
+Added a simple "Thinking..." message before output suppression:
+
+```python
+if state_manager.session.verbose:
+    result = agent.run(message)
+else:
+    # Show immediate feedback since spinner gets suppressed
+    print("● Thinking...", end="", flush=True)
+
+    # Suppress TinyAgent debug output
+    with redirect_stdout(captured_output), redirect_stderr(captured_output):
+        result = agent.run(message)
+
+    # Clear the thinking message
+    print("\r" + " " * 15 + "\r", end="", flush=True)
+```
+
+### **Limitations**
+
+- Not animated like the original spinner
+- Static text instead of rotating dots
+- But provides immediate visual feedback
+
+### **Future Improvements**
+
+Could implement a separate thread for animated spinner that writes directly to terminal, bypassing stdout redirection.
+
+## Final Summary - All Issues Resolved (2025-01-16)
+
+### **Starting Issues**
+
+1. ❌ Tools failed with async event loop errors
+2. ❌ No confirmation prompts (1/2/3 options)
+3. ❌ Verbose output always shown
+4. ❌ Spinner blocked user input
+5. ❌ No visual feedback when verbose OFF
+
+### **Implemented Solutions**
+
+1. ✅ **Thread-based execution** - Tools run in separate threads with own event loops
+2. ✅ **Confirmation system restored** - All tools show 1/2/3 prompts, YOLO mode works
+3. ✅ **Verbose mode added** - `/verbose` command toggles debug output
+4. ✅ **Spinner management fixed** - Stops during confirmations, allows input
+5. ✅ **Thinking indicator** - Shows "● Thinking..." when verbose OFF
+
+### **Current State**
+
+- All tools execute reliably
+- User confirmations work properly
+- Clean output by default
+- Visual feedback always present
+- Professional UI experience
+
+### **Known Limitations**
+
+- Static "Thinking..." instead of animated spinner when verbose OFF
+- Minor prompt_toolkit warnings (cosmetic only)
+
+TunaCode's tool system is now fully functional with TinyAgent integration.
