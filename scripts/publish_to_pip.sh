@@ -23,7 +23,8 @@ die(){ printf "%b\n" "${RED}ERROR:${NC} $*" >&2; exit 1; }
 
 # ── prerequisites -----------------------------------------------------------
 for cmd in python3 pip git twine; do command -v $cmd >/dev/null || die "$cmd missing"; done
-[[ -f ~/.pypirc ]] || die "~/.pypirc missing (should contain real‑PyPI token)"
+PYPIRC_PATH="/root/.pypirc-safe"
+[[ -f "$PYPIRC_PATH" ]] || die "$PYPIRC_PATH missing (should contain real‑PyPI token)"
 
 pip -q install build twine setuptools_scm packaging >/dev/null
 
@@ -74,6 +75,6 @@ git push
 log "Building wheel/sdist"; python3 -m build
 
 # ── upload ------------------------------------------------------------------
-log "Uploading to PyPI"; python3 -m twine upload -r pypi dist/*
+log "Uploading to PyPI"; python3 -m twine upload --config-file "$PYPIRC_PATH" -r pypi dist/*
 
 log "🎉  $PKG $VERSION published on PyPI"
