@@ -277,6 +277,46 @@ def check_for_updates():
         return False, current_version
 
 
+async def update_tunacode():
+    """
+    Update TunaCode to the latest version using pip.
+    """
+    from ..ui import console as ui
+    
+    await ui.info("🔄 Checking for updates...")
+    
+    has_update, latest_version = check_for_updates()
+    
+    if not has_update:
+        await ui.success("✅ TunaCode is already up to date!")
+        return
+    
+    app_settings = ApplicationSettings()
+    current_version = app_settings.version
+    
+    await ui.info(f"📦 Updating from v{current_version} to v{latest_version}...")
+    
+    try:
+        # Run pip install --upgrade tunacode-cli
+        result = subprocess.run(
+            ["pip", "install", "--upgrade", "tunacode-cli"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        if result.returncode == 0:
+            await ui.success(f"🎉 Successfully updated to v{latest_version}!")
+            await ui.info("Please restart TunaCode to use the new version.")
+        else:
+            await ui.error(f"❌ Update failed: {result.stderr}")
+            
+    except subprocess.CalledProcessError as e:
+        await ui.error(f"❌ Update failed: {e.stderr}")
+    except Exception as e:
+        await ui.error(f"❌ Update failed: {str(e)}")
+
+
 def list_cwd(max_depth=3):
     """
     Lists files in the current working directory up to a specified depth,

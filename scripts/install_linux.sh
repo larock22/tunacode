@@ -23,6 +23,22 @@ PYTHON=${PYTHON:-python3}
 echo -e "${BLUE}🐟 TunaCode CLI Installer${NC}"
 echo "================================"
 
+# Check if TunaCode is already installed
+if [ -d "$VENV_DIR" ] && [ -f "$BIN_DIR/tunacode" ]; then
+    echo -e "${YELLOW}TunaCode is already installed.${NC}"
+    echo -e "Would you like to update to the latest version? (y/N)"
+    read -r response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}Updating TunaCode...${NC}"
+        "$VENV_DIR/bin/pip" install --upgrade tunacode-cli --quiet
+        echo -e "${GREEN}✅ TunaCode updated successfully!${NC}"
+        exit 0
+    else
+        echo -e "${BLUE}Skipping update.${NC}"
+        exit 0
+    fi
+fi
+
 # Check Python version
 if ! command -v "$PYTHON" &> /dev/null; then
     echo -e "${RED}Error: Python 3 not found!${NC}"
@@ -31,7 +47,8 @@ if ! command -v "$PYTHON" &> /dev/null; then
 fi
 
 PYTHON_VERSION=$("$PYTHON" -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-if [[ $(echo "$PYTHON_VERSION < 3.10" | bc) -eq 1 ]]; then
+# Check if Python version is less than 3.10 without using bc
+if ! "$PYTHON" -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)"; then
     echo -e "${RED}Error: Python 3.10 or higher required${NC}"
     echo "Found Python $PYTHON_VERSION"
     exit 1

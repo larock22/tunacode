@@ -68,6 +68,9 @@ tunacode
 # Start coding!
 tunacode
 > Help me refactor this codebase to use async/await
+
+# Update to latest version
+tunacode --update
 ```
 
 ## 📋 Commands
@@ -81,6 +84,7 @@ tunacode
 | `/branch <name>` | Create new git branch | `/branch feature/auth` |
 | `/compact` | Summarize and trim history | `/compact` |
 | `/help` | Show all commands | `/help` |
+| `--update` | Update to latest version | `tunacode --update` |
 
 ## 🔧 Configuration
 

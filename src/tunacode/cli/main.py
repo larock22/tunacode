@@ -25,9 +25,15 @@ state_manager = StateManager()
 def main(
     version: bool = typer.Option(False, "--version", "-v", help="Show version and exit."),
     run_setup: bool = typer.Option(False, "--setup", help="Run setup process."),
+    update: bool = typer.Option(False, "--update", "--upgrade", help="Update TunaCode to the latest version."),
 ):
     if version:
         asyncio.run(ui.version())
+        return
+    
+    if update:
+        from tunacode.utils.system import update_tunacode
+        asyncio.run(update_tunacode())
         return
 
     asyncio.run(ui.banner())
