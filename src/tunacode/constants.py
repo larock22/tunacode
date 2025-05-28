@@ -98,8 +98,6 @@ PANEL_MODELS = "Models"
 PANEL_AVAILABLE_COMMANDS = "Available Commands"
 
 # Error messages
-ERROR_PROVIDER_EMPTY = "Provider number cannot be empty"
-ERROR_INVALID_PROVIDER = "Invalid provider number"
 ERROR_FILE_NOT_FOUND = "Error: File not found at '{filepath}'."
 ERROR_FILE_TOO_LARGE = "Error: File '{filepath}' is too large (> 100KB)."
 ERROR_FILE_DECODE = "Error reading file '{filepath}': Could not decode using UTF-8."

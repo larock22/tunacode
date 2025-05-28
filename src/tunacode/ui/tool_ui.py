@@ -2,9 +2,12 @@
 Tool confirmation UI components, separated from business logic.
 """
 
+import sys
 from rich.markdown import Markdown
 from rich.padding import Padding
 from rich.panel import Panel
+from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import HTML
 
 from tunacode.configuration.settings import ApplicationSettings
 from tunacode.constants import APP_NAME, TOOL_UPDATE_FILE, TOOL_WRITE_FILE, UI_COLORS
@@ -157,7 +160,14 @@ class ToolUI:
         ui.console.print("  1. Yes (default)")
         ui.console.print("  2. Yes, and don't ask again for commands like this")
         ui.console.print(f"  3. No, and tell {APP_NAME} what to do differently")
-        resp = input("  Choose an option [1/2/3]: ").strip() or "1"
+        
+        # Use PromptSession for consistent input handling with the REPL
+        try:
+            session = PromptSession()
+            resp = session.prompt("  Choose an option [1/2/3]: ", default="1").strip()
+        except (KeyboardInterrupt, EOFError):
+            # Handle Ctrl+C or Ctrl+D as rejection
+            resp = "3"
 
         # Add spacing after user choice for better readability
         print()

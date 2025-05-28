@@ -15,7 +15,6 @@ from .output import (banner, clear, info, line, muted, print, spinner, success, 
 from .panels import (agent, dump_messages, error, help, models, panel, sync_panel,
                      sync_tool_confirm, tool_confirm)
 from .prompt_manager import PromptConfig, PromptManager
-from .validators import ModelValidator
 
 # Create console object for backward compatibility
 console = RichConsole()
@@ -67,8 +66,6 @@ __all__ = [
     # From prompt_manager module
     "PromptConfig",
     "PromptManager",
-    # From validators module
-    "ModelValidator",
     # Local utilities
     "markdown",
 ]
