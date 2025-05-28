@@ -73,7 +73,7 @@ This directory contains local backup files created by TunaCode to enable undo fu
 - Automatically cleaned up (keeps last 50 backups)
 - Not committed to version control
 
-Created by TunaCode (https://github.com/larock22/tunacode)
+Created by TunaCode (https://github.com/alchemiststudiosDOTai/tunacode)
 """
                 )
 

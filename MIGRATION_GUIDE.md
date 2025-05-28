@@ -91,6 +91,6 @@ A: No, your existing config will work. You may want to remove specific OpenRoute
 
 ## Need Help?
 
-- [Report issues](https://github.com/larock22/tunacode/issues)
-- Check [documentation](https://github.com/larock22/tunacode)
+- [Report issues](https://github.com/alchemiststudiosDOTai/tunacode/issues)
+- Check [documentation](https://github.com/alchemiststudiosDOTai/tunacode)
 - Review [changelog](CHANGES_SUMMARY.md)

@@ -251,7 +251,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ```bash
 # Setup development environment
-git clone https://github.com/larock22/tunacode
+git clone https://github.com/alchemiststudiosDOTai/tunacode
 cd tunacode
 pip install -e ".[dev]"
 
@@ -282,4 +282,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Note**: TunaCode is in active development. Please [report issues](https://github.com/larock22/tunacode/issues) or share feedback!
+**Note**: TunaCode is in active development. Please [report issues](https://github.com/alchemiststudiosDOTai/tunacode/issues) or share feedback!
