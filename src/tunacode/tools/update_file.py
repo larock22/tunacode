@@ -7,8 +7,6 @@ Enables safe text replacement in existing files with target/patch semantics.
 
 import os
 
-from pydantic_ai.exceptions import ModelRetry
-
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import FileBasedTool
 from tunacode.types import FileContent, FilePath, ToolResult
@@ -36,13 +34,17 @@ class UpdateFileTool(FileBasedTool):
             ToolResult: A message indicating success.
 
         Raises:
-            ModelRetry: If file not found or target not found
+            ToolExecutionError: If file not found or target not found
             Exception: Any file operation errors
         """
         if not os.path.exists(filepath):
-            raise ModelRetry(
-                f"File '{filepath}' not found. Cannot update. "
-                "Verify the filepath or use `write_file` if it's a new file."
+            raise ToolExecutionError(
+                tool_name=self.tool_name,
+                message=(
+                    f"File '{filepath}' not found. Cannot update. "
+                    "Verify the filepath or use `write_file` if it's a new file."
+                ),
+                original_error=None,
             )
 
         with open(filepath, "r", encoding="utf-8") as f:
@@ -53,20 +55,28 @@ class UpdateFileTool(FileBasedTool):
             context_lines = 10
             lines = original.splitlines()
             snippet = "\n".join(lines[:context_lines])
-            # Use ModelRetry to guide the LLM
-            raise ModelRetry(
-                f"Target block not found in '{filepath}'. "
-                "Ensure the `target` argument exactly matches the content you want to replace. "
-                f"File starts with:\n---\n{snippet}\n---"
+            # Raise error to guide the LLM
+            raise ToolExecutionError(
+                tool_name=self.tool_name,
+                message=(
+                    f"Target block not found in '{filepath}'. "
+                    "Ensure the `target` argument exactly matches the content you want to replace. "
+                    f"File starts with:\n---\n{snippet}\n---"
+                ),
+                original_error=None,
             )
 
         new_content = original.replace(target, patch, 1)  # Replace only the first occurrence
 
         if original == new_content:
             # This could happen if target and patch are identical
-            raise ModelRetry(
-                f"Update target found, but replacement resulted in no changes to '{filepath}'. "
-                "Was the `target` identical to the `patch`? Please check the file content."
+            raise ToolExecutionError(
+                tool_name=self.tool_name,
+                message=(
+                    f"Update target found, but replacement resulted in no changes to '{filepath}'. "
+                    "Was the `target` identical to the `patch`? Please check the file content."
+                ),
+                original_error=None,
             )
 
         with open(filepath, "w", encoding="utf-8") as f:

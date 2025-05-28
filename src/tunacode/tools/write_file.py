@@ -7,8 +7,6 @@ Creates new files with automatic directory creation and overwrite protection.
 
 import os
 
-from pydantic_ai.exceptions import ModelRetry
-
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import FileBasedTool
 from tunacode.types import FileContent, FilePath, ToolResult
@@ -33,15 +31,19 @@ class WriteFileTool(FileBasedTool):
             ToolResult: A message indicating success.
 
         Raises:
-            ModelRetry: If the file already exists
+            ToolExecutionError: If the file already exists
             Exception: Any file writing errors
         """
         # Prevent overwriting existing files with this tool.
         if os.path.exists(filepath):
-            # Use ModelRetry to guide the LLM
-            raise ModelRetry(
-                f"File '{filepath}' already exists. "
-                "Use the `update_file` tool to modify it, or choose a different filepath."
+            # Raise error to guide the LLM
+            raise ToolExecutionError(
+                tool_name=self.tool_name,
+                message=(
+                    f"File '{filepath}' already exists. Use the `update_file` tool "
+                    "to modify it, or choose a different filepath."
+                ),
+                original_error=None,
             )
 
         # Create directories if they don't exist

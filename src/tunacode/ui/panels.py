@@ -38,11 +38,11 @@ async def panel(
     """Display a rich panel with modern styling."""
     border_style = border_style or kwargs.get("style") or colors.border
     panel_obj = Panel(
-        Padding(text, (0, 1, 0, 1)), 
-        title=f"[bold]{title}[/bold]", 
-        title_align="left", 
+        Padding(text, (0, 1, 0, 1)),
+        title=f"[bold]{title}[/bold]",
+        title_align="left",
         border_style=border_style,
-        padding=(0, 1)
+        padding=(0, 1),
     )
     await print(Padding(panel_obj, (top, right, bottom, left)), **kwargs)
 

@@ -7,17 +7,17 @@ Manages automatic commits and rollback operations.
 
 import subprocess
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Tuple
 
-from pydantic_ai.messages import ModelResponse, TextPart
-
-from tunacode.constants import (ERROR_UNDO_INIT, UNDO_DISABLED_HOME, UNDO_DISABLED_NO_GIT,
-                                UNDO_GIT_TIMEOUT, UNDO_INITIAL_COMMIT)
+from tunacode.constants import (ERROR_UNDO_INIT, UNDO_DISABLED_HOME, UNDO_GIT_TIMEOUT,
+                                UNDO_INITIAL_COMMIT)
 from tunacode.core.state import StateManager
 from tunacode.exceptions import GitOperationError
-from tunacode.ui import console as ui
 from tunacode.utils.system import get_session_dir
+
+# Removed pydantic_ai import - using dict-based messages now
 
 
 def is_in_git_project(directory: Optional[Path] = None) -> bool:
@@ -220,17 +220,14 @@ def perform_undo(state_manager: StateManager) -> Tuple[bool, str]:
         # Add a system message to the chat history to inform the AI
         # about the undo operation
         state_manager.session.messages.append(
-            ModelResponse(
-                parts=[
-                    TextPart(
-                        content=(
-                            "The last changes were undone. "
-                            f"Commit message of undone changes: {commit_msg}"
-                        )
-                    )
-                ],
-                kind="response",
-            )
+            {
+                "role": "system",
+                "content": (
+                    f"The last changes were undone. "
+                    f"Commit message of undone changes: {commit_msg}"
+                ),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
         )
 
         return True, "Successfully undid last change"

@@ -42,12 +42,14 @@ class PromptManager:
         self.state_manager = state_manager
         self._temp_sessions = {}  # For when no state manager is available
         self._style = self._create_style()
-    
+
     def _create_style(self) -> Style:
         """Create the style for the prompt with file reference highlighting."""
-        return Style.from_dict({
-            'file-reference': UI_COLORS.get('file_ref', 'light_blue'),
-        })
+        return Style.from_dict(
+            {
+                "file-reference": UI_COLORS.get("file_ref", "light_blue"),
+            }
+        )
 
     def get_session(self, session_key: str, config: PromptConfig) -> PromptSession:
         """Get or create a prompt session.

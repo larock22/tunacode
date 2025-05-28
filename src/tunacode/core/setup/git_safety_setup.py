@@ -13,15 +13,12 @@ from tunacode.ui.panels import panel
 async def yes_no_prompt(question: str, default: bool = True) -> bool:
     """Simple yes/no prompt."""
     default_text = "[Y/n]" if default else "[y/N]"
-    response = await prompt_input(
-        session_key="yes_no",
-        pretext=f"{question} {default_text}: "
-    )
-    
+    response = await prompt_input(session_key="yes_no", pretext=f"{question} {default_text}: ")
+
     if not response.strip():
         return default
-    
-    return response.lower().strip() in ['y', 'yes']
+
+    return response.lower().strip() in ["y", "yes"]
 
 
 class GitSafetySetup(BaseSetup):
@@ -29,7 +26,7 @@ class GitSafetySetup(BaseSetup):
 
     def __init__(self, state_manager: StateManager):
         super().__init__(state_manager)
-    
+
     @property
     def name(self) -> str:
         """Return the name of this setup step."""
@@ -45,18 +42,15 @@ class GitSafetySetup(BaseSetup):
         try:
             # Check if git is installed
             result = subprocess.run(
-                ["git", "--version"],
-                capture_output=True,
-                text=True,
-                check=False
+                ["git", "--version"], capture_output=True, text=True, check=False
             )
-            
+
             if result.returncode != 0:
                 await panel(
                     "⚠️  Git Not Found",
                     "Git is not installed or not in PATH. TunaCode will modify files directly.\n"
                     "It's strongly recommended to install Git for safety.",
-                    border_style="yellow"
+                    border_style="yellow",
                 )
                 return
 
@@ -66,33 +60,31 @@ class GitSafetySetup(BaseSetup):
                 capture_output=True,
                 text=True,
                 check=False,
-                cwd=Path.cwd()
+                cwd=Path.cwd(),
             )
-            
+
             if result.returncode != 0:
                 await panel(
                     "⚠️  Not a Git Repository",
                     "This directory is not a Git repository. TunaCode will modify files directly.\n"
                     "Consider initializing a Git repository for safety: git init",
-                    border_style="yellow"
+                    border_style="yellow",
                 )
                 return
 
             # Get current branch name
             result = subprocess.run(
-                ["git", "branch", "--show-current"],
-                capture_output=True,
-                text=True,
-                check=True
+                ["git", "branch", "--show-current"], capture_output=True, text=True, check=True
             )
             current_branch = result.stdout.strip()
-            
+
             if not current_branch:
                 # Detached HEAD state
                 await panel(
                     "⚠️  Detached HEAD State",
-                    "You're in a detached HEAD state. TunaCode will continue without creating a branch.",
-                    border_style="yellow"
+                    "You're in a detached HEAD state. TunaCode will continue "
+                    "without creating a branch.",
+                    border_style="yellow",
                 )
                 return
 
@@ -103,31 +95,28 @@ class GitSafetySetup(BaseSetup):
 
             # Propose new branch name
             new_branch = f"{current_branch}-tunacode"
-            
+
             # Check if there are uncommitted changes
             result = subprocess.run(
-                ["git", "status", "--porcelain"],
-                capture_output=True,
-                text=True,
-                check=True
+                ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
             )
-            
+
             has_changes = bool(result.stdout.strip())
-            
+
             # Ask user if they want to create a safety branch
             message = (
-                f"For safety, TunaCode can create a new branch '{new_branch}' based on '{current_branch}'.\n"
+                f"For safety, TunaCode can create a new branch '{new_branch}' "
+                f"based on '{current_branch}'.\n"
                 f"This helps protect your work from unintended changes.\n"
             )
-            
+
             if has_changes:
-                message += "\n⚠️  You have uncommitted changes that will be brought to the new branch."
-            
-            create_branch = await yes_no_prompt(
-                f"{message}\n\nCreate safety branch?",
-                default=True
-            )
-            
+                message += (
+                    "\n⚠️  You have uncommitted changes that will be brought to the new branch."
+                )
+
+            create_branch = await yes_no_prompt(f"{message}\n\nCreate safety branch?", default=True)
+
             if not create_branch:
                 # User declined - show warning
                 await panel(
@@ -135,26 +124,25 @@ class GitSafetySetup(BaseSetup):
                     "You've chosen to work directly on your current branch.\n"
                     "TunaCode will modify files in place. Make sure you have backups!\n"
                     "You can always use /undo to revert changes.",
-                    border_style="red"
+                    border_style="red",
                 )
                 # Save preference
                 self.state_manager.session.user_config["skip_git_safety"] = True
                 return
-            
+
             # Create and checkout the new branch
             try:
                 # Check if branch already exists
                 result = subprocess.run(
                     ["git", "show-ref", "--verify", f"refs/heads/{new_branch}"],
                     capture_output=True,
-                    check=False
+                    check=False,
                 )
-                
+
                 if result.returncode == 0:
                     # Branch exists, ask to use it
                     use_existing = await yes_no_prompt(
-                        f"Branch '{new_branch}' already exists. Switch to it?",
-                        default=True
+                        f"Branch '{new_branch}' already exists. Switch to it?", default=True
                     )
                     if use_existing:
                         subprocess.run(["git", "checkout", new_branch], check=True)
@@ -165,22 +153,22 @@ class GitSafetySetup(BaseSetup):
                     # Create new branch
                     subprocess.run(["git", "checkout", "-b", new_branch], check=True)
                     await ui.success(f"Created and switched to new branch: {new_branch}")
-                    
+
             except subprocess.CalledProcessError as e:
                 await panel(
                     "❌ Failed to Create Branch",
                     f"Could not create branch '{new_branch}': {str(e)}\n"
                     "Continuing on current branch.",
-                    border_style="red"
+                    border_style="red",
                 )
-                
+
         except Exception as e:
             # Non-fatal error - just warn the user
             await panel(
                 "⚠️  Git Safety Setup Failed",
                 f"Could not set up Git safety: {str(e)}\n"
                 "TunaCode will continue without branch protection.",
-                border_style="yellow"
+                border_style="yellow",
             )
 
     async def validate(self) -> bool:

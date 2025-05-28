@@ -215,7 +215,7 @@ async def repl(state_manager: StateManager):
     await ui.line()
     await ui.success("ready to hack...")
     await ui.line()
-    
+
     instance = agent.get_or_create_agent(state_manager.session.current_model, state_manager)
 
     async with instance.run_mcp_servers():

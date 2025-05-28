@@ -4,9 +4,10 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+![Chuna](chuna.jpg_medium)
+
 **Your agentic CLI developer** - An open-source alternative to Claude Code, Copilot, and Cursor with multi-provider LLM support.
 
-![TunaCode Demo](screenshot.gif)
 
 ## ✨ What's New (v0.1.0)
 

@@ -1,12 +1,10 @@
 """Base tool class for all Sidekick tools.
 
 This module provides a base class that implements common patterns
-for all tools including error handling, UI logging, and ModelRetry support.
+for all tools including error handling and UI logging.
 """
 
 from abc import ABC, abstractmethod
-
-from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.exceptions import FileOperationError, ToolExecutionError
 from tunacode.types import FilePath, ToolName, ToolResult, UILogger
@@ -28,31 +26,25 @@ class BaseTool(ABC):
 
         This method wraps the tool-specific logic with:
         - UI logging of the operation
-        - Exception handling (except ModelRetry and ToolExecutionError)
+        - Exception handling
         - Consistent error message formatting
 
         Returns:
             str: Success message
 
         Raises:
-            ModelRetry: Re-raised to guide the LLM
-            ToolExecutionError: Raised for all other errors with structured information
+            ToolExecutionError: Raised for all errors with structured information
         """
         try:
             if self.ui:
                 await self.ui.info(f"{self.tool_name}({self._format_args(*args, **kwargs)})")
             result = await self._execute(*args, **kwargs)
-            
+
             # For file operations, try to create a git commit for undo tracking
             if isinstance(self, FileBasedTool):
                 await self._commit_for_undo()
-                
+
             return result
-        except ModelRetry as e:
-            # Log as warning and re-raise for pydantic-ai
-            if self.ui:
-                await self.ui.warning(str(e))
-            raise
         except ToolExecutionError:
             # Already properly formatted, just re-raise
             raise
@@ -76,8 +68,7 @@ class BaseTool(ABC):
             str: Success message describing what was done
 
         Raises:
-            ModelRetry: When the LLM needs guidance
-            Exception: Any other errors will be caught and handled
+            Exception: Any errors will be caught and handled
         """
         pass
 
@@ -148,10 +139,10 @@ class FileBasedTool(BaseTool):
     - Encoding handling
     - Git commit for undo tracking
     """
-    
+
     async def _commit_for_undo(self) -> None:
         """Create a git commit for undo tracking after file operations.
-        
+
         This method gracefully handles cases where git is not available:
         - No git repository: Warns user about limited undo functionality
         - Git command fails: Warns but doesn't break the main operation
@@ -160,13 +151,13 @@ class FileBasedTool(BaseTool):
         try:
             # Import here to avoid circular imports
             from tunacode.services.undo_service import commit_for_undo, is_in_git_project
-            
+
             # Check if we're in a git project first
             if not is_in_git_project():
                 if self.ui:
                     await self.ui.muted("⚠️  No git repository - undo functionality limited")
                 return
-            
+
             # Try to create commit with tool name as prefix
             success = commit_for_undo(message_prefix=f"tunacode {self.tool_name.lower()}")
             if success and self.ui:
@@ -179,7 +170,7 @@ class FileBasedTool(BaseTool):
             if self.ui:
                 try:
                     await self.ui.muted("⚠️  Git commit failed - undo functionality limited")
-                except:
+                except Exception:
                     # Even the warning failed, just continue silently
                     pass
 

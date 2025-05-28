@@ -77,8 +77,6 @@ class MCPError(ServiceError):
         super().__init__(f"MCP server '{server_name}' error: {message}")
 
 
-
-
 class GitOperationError(ServiceError):
     """Raised when Git operations fail."""
 

@@ -7,7 +7,7 @@ Centralizes all magic strings, UI text, error messages, and application constant
 
 # Application info
 APP_NAME = "TunaCode"
-APP_VERSION = "0.5.1"
+APP_VERSION = "0.1.0"
 
 # File patterns
 GUIDE_FILE_PATTERN = "{name}.md"
@@ -69,16 +69,16 @@ DEVICE_ID_FILE = "device_id"
 
 # UI colors - Modern sleek color scheme
 UI_COLORS = {
-    "primary": "#00d7ff",      # Bright cyan
-    "secondary": "#64748b",   # Slate gray
-    "accent": "#7c3aed",      # Purple accent
-    "success": "#10b981",     # Emerald green
-    "warning": "#f59e0b",     # Amber
-    "error": "#ef4444",       # Red
-    "muted": "#94a3b8",       # Light slate
-    "file_ref": "#00d7ff",    # Bright cyan
+    "primary": "#00d7ff",  # Bright cyan
+    "secondary": "#64748b",  # Slate gray
+    "accent": "#7c3aed",  # Purple accent
+    "success": "#10b981",  # Emerald green
+    "warning": "#f59e0b",  # Amber
+    "error": "#ef4444",  # Red
+    "muted": "#94a3b8",  # Light slate
+    "file_ref": "#00d7ff",  # Bright cyan
     "background": "#0f172a",  # Dark slate
-    "border": "#334155",      # Slate border
+    "border": "#334155",  # Slate border
 }
 
 # UI text and formatting

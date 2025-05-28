@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Type
 
 from .. import utils
-from ..configuration.models import ModelRegistry
 from ..exceptions import ValidationError
 from ..services.undo_service import perform_undo
 from ..types import CommandArgs, CommandContext, CommandResult, ProcessRequestCallback
@@ -260,7 +259,6 @@ class UndoCommand(SimpleCommand):
                 await ui.muted("   • File operations will still work, but can't be undone")
 
 
-
 class BranchCommand(SimpleCommand):
     """Create and switch to a new git branch."""
 
@@ -395,47 +393,53 @@ class ModelCommand(SimpleCommand):
         )
 
     async def execute(self, args: CommandArgs, context: CommandContext) -> Optional[str]:
-        from .model_selector import ModelSelector
-        
+        from tunacode.cli.model_selector import ModelSelector
+
         selector = ModelSelector()
-        
+
         if not args:
             # No arguments - show enhanced model list
             await self._show_model_list(selector, context.state_manager)
             return None
-        
+
         # Find model by query (index, name, or fuzzy match)
         query = args[0]
         model_info = selector.find_model(query)
-        
+
         if not model_info:
             # Try to provide helpful suggestions
             await ui.error(f"Model '{query}' not found")
-            await ui.muted("Try: /model (to list all), or use a number 0-18, or model name like 'opus' or 'gpt-4'")
+            await ui.muted(
+                "Try: /model (to list all), or use a number 0-18, "
+                "or model name like 'opus' or 'gpt-4'"
+            )
             return None
-        
+
         # Set the model
         context.state_manager.session.current_model = model_info.id
-        
+
         # Check if setting as default
         if len(args) > 1 and args[1] == "default":
             utils.user_configuration.set_default_model(model_info.id, context.state_manager)
-            await ui.success(f"Set default model: {model_info.display_name} {model_info.provider.value[2]}")
+            await ui.success(
+                f"Set default model: {model_info.display_name} {model_info.provider.value[2]}"
+            )
             return "restart"
         else:
             # Show success message with model details
             cost_emoji = selector.get_cost_emoji(model_info.cost_tier)
             await ui.success(
-                f"Switched to: {model_info.display_name} {model_info.provider.value[2]} {cost_emoji}\n"
+                f"Switched to: {model_info.display_name} "
+                f"{model_info.provider.value[2]} {cost_emoji}\n"
                 f"  → {model_info.description}"
             )
             return None
-    
-    async def _show_model_list(self, selector: ModelSelector, state_manager) -> None:
+
+    async def _show_model_list(self, selector, state_manager) -> None:
         """Show enhanced model list grouped by provider."""
         from rich.table import Table
         from rich.text import Text
-        
+
         # Create table
         table = Table(show_header=True, box=None, padding=(0, 2))
         table.add_column("ID", style="dim", width=3)
@@ -443,14 +447,14 @@ class ModelCommand(SimpleCommand):
         table.add_column("Short", style="cyan")
         table.add_column("Description", style="dim")
         table.add_column("Cost", justify="center", width=4)
-        
+
         # Current model
         current_model = state_manager.session.current_model if state_manager else None
-        
+
         # Add models grouped by provider
         model_index = 0
         grouped = selector.get_models_by_provider()
-        
+
         for provider in [p for p in grouped if grouped[p]]:  # Only show providers with models
             # Add provider header
             table.add_row(
@@ -458,30 +462,26 @@ class ModelCommand(SimpleCommand):
                 Text(f"{provider.value[2]} {provider.value[1]}", style="bold magenta"),
                 "",
                 "",
-                ""
+                "",
             )
-            
+
             # Add models for this provider
             for model in grouped[provider]:
                 is_current = model.id == current_model
                 style = "bold green" if is_current else ""
-                
+
                 table.add_row(
                     str(model_index),
                     Text(model.display_name + (" ← current" if is_current else ""), style=style),
                     model.short_name,
                     model.description,
-                    selector.get_cost_emoji(model.cost_tier)
+                    selector.get_cost_emoji(model.cost_tier),
                 )
                 model_index += 1
-        
+
         # Show the table
-        await ui.panel(
-            "Available Models",
-            table,
-            border_style="cyan"
-        )
-        
+        await ui.panel("Available Models", table, border_style="cyan")
+
         # Show usage hints
         await ui.muted("\n💡 Usage: /model <number|name> [default]")
         await ui.muted("   Examples: /model 3, /model opus, /model gpt-4 default")
@@ -546,8 +546,7 @@ class CommandRegistry:
         category_commands = self._categories[command.category]
         # Remove any existing instance of this command class
         self._categories[command.category] = [
-            cmd for cmd in category_commands 
-            if cmd.__class__ != command.__class__
+            cmd for cmd in category_commands if cmd.__class__ != command.__class__
         ]
         # Add the new instance
         self._categories[command.category].append(command)
@@ -591,7 +590,7 @@ class CommandRegistry:
         # Only update if callback has changed
         if self._factory.dependencies.process_request_callback == callback:
             return
-            
+
         self._factory.update_dependencies(process_request_callback=callback)
 
         # Re-register CompactCommand with new dependency if already registered
@@ -626,10 +625,10 @@ class CommandRegistry:
         if command_name in self._commands:
             command = self._commands[command_name]
             return await command.execute(args, context)
-        
+
         # Try partial matching
         matches = self.find_matching_commands(command_name)
-        
+
         if not matches:
             raise ValidationError(f"Unknown command: {command_name}")
         elif len(matches) == 1:
@@ -639,16 +638,17 @@ class CommandRegistry:
         else:
             # Ambiguous - show possibilities
             raise ValidationError(
-                f"Ambiguous command '{command_name}'. Did you mean: {', '.join(sorted(set(matches)))}?"
+                f"Ambiguous command '{command_name}'. Did you mean: "
+                f"{', '.join(sorted(set(matches)))}?"
             )
 
     def find_matching_commands(self, partial_command: str) -> List[str]:
         """
         Find all commands that start with the given partial command.
-        
+
         Args:
             partial_command: The partial command to match
-            
+
         Returns:
             List of matching command names
         """
@@ -666,11 +666,11 @@ class CommandRegistry:
             return False
 
         command_name = parts[0].lower()
-        
+
         # Check exact match first
         if command_name in self._commands:
             return True
-            
+
         # Check partial match
         return len(self.find_matching_commands(command_name)) > 0
 

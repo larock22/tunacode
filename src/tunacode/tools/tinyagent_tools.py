@@ -1,39 +1,29 @@
 """TinyAgent tool implementations with decorators."""
 
-import os
 from typing import Optional
 
 from tinyagent.decorators import tool
 
-from tunacode.constants import (
-    ERROR_FILE_DECODE,
-    ERROR_FILE_DECODE_DETAILS,
-    ERROR_FILE_NOT_FOUND,
-    ERROR_FILE_TOO_LARGE,
-    MAX_FILE_SIZE,
-    MSG_FILE_SIZE_LIMIT,
-)
 from tunacode.exceptions import ToolExecutionError
-from tunacode.types import FilePath, ToolResult
 from tunacode.ui import console as ui
 
 # Import the existing tool classes to reuse their logic
 from .read_file import ReadFileTool
-from .write_file import WriteFileTool
-from .update_file import UpdateFileTool  
 from .run_command import RunCommandTool
+from .update_file import UpdateFileTool
+from .write_file import WriteFileTool
 
 
 @tool
 async def read_file(filepath: str) -> str:
     """Read the contents of a file.
-    
+
     Args:
         filepath: The path to the file to read.
-        
+
     Returns:
         The contents of the file.
-        
+
     Raises:
         Exception: If file cannot be read.
     """
@@ -49,14 +39,14 @@ async def read_file(filepath: str) -> str:
 @tool
 async def write_file(filepath: str, content: str) -> str:
     """Write content to a file.
-    
+
     Args:
         filepath: The path to the file to write.
         content: The content to write to the file.
-        
+
     Returns:
         Success message.
-        
+
     Raises:
         Exception: If file cannot be written.
     """
@@ -71,15 +61,15 @@ async def write_file(filepath: str, content: str) -> str:
 @tool
 async def update_file(filepath: str, old_content: str, new_content: str) -> str:
     """Update specific content in a file.
-    
+
     Args:
         filepath: The path to the file to update.
         old_content: The content to find and replace.
         new_content: The new content to insert.
-        
+
     Returns:
         Success message.
-        
+
     Raises:
         Exception: If file cannot be updated.
     """
@@ -94,14 +84,14 @@ async def update_file(filepath: str, old_content: str, new_content: str) -> str:
 @tool
 async def run_command(command: str, timeout: Optional[int] = None) -> str:
     """Run a shell command.
-    
+
     Args:
         command: The command to run.
         timeout: Optional timeout in seconds.
-        
+
     Returns:
         The command output.
-        
+
     Raises:
         Exception: If command fails.
     """

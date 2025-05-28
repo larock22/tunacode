@@ -16,9 +16,15 @@ from .decorators import create_sync_wrapper
 console = Console()
 colors = DotDict(UI_COLORS)
 
-BANNER = """[bold #00d7ff]┌─────────────────────────────────────────────────────────────────┐[/bold #00d7ff]
-[bold #00d7ff]│[/bold #00d7ff] [bold white]T U N A C O D E[/bold white] [dim #64748b]• Agentic AI Development Environment[/dim #64748b] [bold #00d7ff]│[/bold #00d7ff]
-[bold #00d7ff]└─────────────────────────────────────────────────────────────────┘[/bold #00d7ff]"""
+BANNER = (
+    "[bold #00d7ff]┌─────────────────────────────────────────────────────────────────┐"
+    "[/bold #00d7ff]\n"
+    "[bold #00d7ff]│[/bold #00d7ff] [bold white]T U N A C O D E[/bold white] "
+    "[dim #64748b]• Agentic AI Development Environment[/dim #64748b] "
+    "[bold #00d7ff]│[/bold #00d7ff]\n"
+    "[bold #00d7ff]└─────────────────────────────────────────────────────────────────┘"
+    "[/bold #00d7ff]"
+)
 
 
 @create_sync_wrapper

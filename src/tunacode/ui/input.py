@@ -4,10 +4,9 @@ from typing import Optional
 
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator
 
-from tunacode.constants import UI_COLORS, UI_PROMPT_PREFIX
+from tunacode.constants import UI_PROMPT_PREFIX
 from tunacode.core.state import StateManager
 
 from .completers import create_completer
@@ -72,7 +71,9 @@ async def input(
     return await manager.get_input(session_key, pretext, config)
 
 
-async def multiline_input(state_manager: Optional[StateManager] = None, command_registry=None) -> str:
+async def multiline_input(
+    state_manager: Optional[StateManager] = None, command_registry=None
+) -> str:
     """Get multiline input from the user with @file completion and highlighting."""
     kb = create_key_bindings()
     placeholder = formatted_text(
@@ -85,11 +86,11 @@ async def multiline_input(state_manager: Optional[StateManager] = None, command_
         )
     )
     return await input(
-        "multiline", 
-        key_bindings=kb, 
-        multiline=True, 
+        "multiline",
+        key_bindings=kb,
+        multiline=True,
         placeholder=placeholder,
         completer=create_completer(command_registry),
         lexer=FileReferenceLexer(),
-        state_manager=state_manager
+        state_manager=state_manager,
     )

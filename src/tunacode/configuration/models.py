@@ -12,12 +12,12 @@ from tunacode.types import ModelRegistry as ModelRegistryType
 class ModelRegistry:
     _instance = None
     _models_cache = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ModelRegistry, cls).__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         if ModelRegistry._models_cache is None:
             ModelRegistry._models_cache = self._load_default_models()

@@ -1,11 +1,9 @@
-import json
-import os
 import subprocess
 from pathlib import Path
 from typing import Dict, List
 
-from tunacode.utils.system import list_cwd
 from tunacode.utils.ripgrep import ripgrep
+from tunacode.utils.system import list_cwd
 
 
 async def get_git_status() -> Dict[str, object]:

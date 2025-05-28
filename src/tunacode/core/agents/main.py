@@ -5,22 +5,18 @@ Provides agent creation, message processing, and tool call management.
 Now using tinyAgent instead of pydantic-ai.
 """
 
-from datetime import datetime, timezone
 from typing import Optional
 
-# Import tinyAgent implementation
-from .tinyagent_main import (
-    get_or_create_react_agent,
-    process_request_with_tinyagent,
-    patch_tool_messages as tinyagent_patch_tool_messages
-)
-
 from tunacode.core.state import StateManager
-from tunacode.types import (AgentRun, ErrorMessage, ModelName, ToolCallback,
-                            ToolCallId, ToolName)
+from tunacode.types import AgentRun, ErrorMessage, ModelName, ToolCallback
 
+# Import tinyAgent implementation
+from .tinyagent_main import get_or_create_react_agent
+from .tinyagent_main import patch_tool_messages as tinyagent_patch_tool_messages
+from .tinyagent_main import process_request_with_tinyagent
 
 # Wrapper functions for backward compatibility with pydantic-ai interface
+
 
 def get_or_create_agent(model: ModelName, state_manager: StateManager):
     """
@@ -51,33 +47,31 @@ async def process_request(
     Process a request using tinyAgent.
     Returns a result that mimics the pydantic-ai AgentRun structure.
     """
-    result = await process_request_with_tinyagent(
-        model, message, state_manager, tool_callback
-    )
-    
+    result = await process_request_with_tinyagent(model, message, state_manager, tool_callback)
+
     # Create a mock AgentRun object for compatibility
     class MockAgentRun:
         def __init__(self, result_dict):
             self._result = result_dict
-            
+
         @property
         def result(self):
             class MockResult:
                 def __init__(self, content):
                     self._content = content
-                    
+
                 @property
                 def output(self):
                     return self._content
-                    
+
             return MockResult(self._result.get("result", ""))
-        
-        @property 
+
+        @property
         def messages(self):
             return state_manager.session.messages
-            
+
         @property
         def model(self):
             return self._result.get("model", model)
-    
+
     return MockAgentRun(result)
