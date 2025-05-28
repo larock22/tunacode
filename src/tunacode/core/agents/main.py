@@ -13,7 +13,7 @@ from tunacode.types import AgentRun, ErrorMessage, ModelName, ToolCallback
 # Import tinyAgent implementation
 from .tinyagent_main import get_or_create_react_agent
 from .tinyagent_main import patch_tool_messages as tinyagent_patch_tool_messages
-from .tinyagent_main import process_request_with_tinyagent
+from .workflow_agent import get_workflow_agent
 
 # Wrapper functions for backward compatibility with pydantic-ai interface
 
@@ -47,7 +47,9 @@ async def process_request(
     Process a request using tinyAgent.
     Returns a result that mimics the pydantic-ai AgentRun structure.
     """
-    result = await process_request_with_tinyagent(model, message, state_manager, tool_callback)
+    # Use the WorkflowAgent to orchestrate planning and execution
+    workflow = get_workflow_agent(model, state_manager)
+    result = await workflow.run(message, tool_callback=tool_callback)
 
     # Create a mock AgentRun object for compatibility
     class MockAgentRun:

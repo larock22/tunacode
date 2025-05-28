@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from tinyagent.react.react_agent import ReactAgent
 
 from tunacode.core.state import StateManager
+from tunacode.tools.search import glob_find, grep_rg, ls_tree
 from tunacode.tools.tinyagent_tools import read_file, run_command, update_file, write_file
 from tunacode.types import ModelName, ToolCallback
 
@@ -62,7 +63,7 @@ def get_or_create_react_agent(model: ModelName, state_manager: StateManager) -> 
         agent = ReactAgent(model_override=actual_model)
 
         # Register our tools
-        for fn in (read_file, write_file, update_file, run_command):
+        for fn in (read_file, write_file, update_file, run_command, ls_tree, glob_find, grep_rg):
             agent.register_tool(fn._tool)
 
         # Add MCP compatibility method
