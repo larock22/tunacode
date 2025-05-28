@@ -39,6 +39,11 @@
 # Install from PyPI
 pip install tunacode-cli
 
+# Or install globally using pipx (recommended on Linux)
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+pipx install tunacode-cli
+
 # Run setup (first time only)
 tunacode
 
@@ -46,6 +51,15 @@ tunacode
 tunacode
 > Help me refactor this codebase to use async/await
 ```
+
+For a self-contained setup without `pipx`, run the helper script included in
+this repository:
+
+```bash
+./scripts/install_linux.sh
+```
+This creates a virtual environment under `~/.tunacode-venv` and places a wrapper
+in `~/.local/bin` so you can run `tunacode` from anywhere.
 
 ## 📋 Commands
 
