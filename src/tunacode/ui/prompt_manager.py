@@ -28,6 +28,7 @@ class PromptConfig:
     completer: Optional[Completer] = None
     lexer: Optional[Lexer] = None
     timeoutlen: float = 0.05
+    default: str = ""
 
 
 class PromptManager:
@@ -107,6 +108,7 @@ class PromptManager:
                 is_password=config.is_password,
                 validator=config.validator,
                 multiline=config.multiline,
+                default=config.default,
             )
 
             # Clean up response

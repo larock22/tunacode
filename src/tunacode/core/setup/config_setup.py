@@ -65,14 +65,14 @@ class ConfigSetup(BaseSetup):
         # Check if the configured model still exists
         default_model = self.state_manager.session.user_config["default_model"]
         if not self.model_registry.get_model(default_model):
+            # If model not found, run the onboarding again
             await ui.panel(
                 "Model Not Found",
                 f"The configured model '[bold]{default_model}[/bold]' is no longer available.\n"
-                "Please select a new default model.",
+                "Let's reconfigure your setup.",
                 border_style=UI_COLORS["warning"],
             )
-            await self._step2_default_model()
-            user_configuration.save_config(self.state_manager)
+            await self._onboarding()
 
         self.state_manager.session.current_model = self.state_manager.session.user_config[
             "default_model"
@@ -114,66 +114,74 @@ class ConfigSetup(BaseSetup):
         """Run the onboarding process for new users."""
         initial_config = json.dumps(self.state_manager.session.user_config, sort_keys=True)
 
-        await self._step1_api_keys()
+        # Welcome message
+        message = (
+            f"Welcome to {APP_NAME}!\n\n"
+            "Let's configure your AI provider. TunaCode supports:\n"
+            "• OpenAI (api.openai.com)\n"
+            "• OpenRouter (openrouter.ai) - Access 100+ models\n"
+            "• Any OpenAI-compatible API\n"
+        )
+        await ui.panel("Setup", message, border_style=UI_COLORS["primary"])
 
-        # Only continue if at least one API key was provided
-        env = self.state_manager.session.user_config.get("env", {})
-        has_api_key = any(key.endswith("_API_KEY") and env.get(key) for key in env)
+        # Step 1: Ask for base URL
+        base_url = await ui.input(
+            "step1",
+            pretext="  API Base URL (press Enter for OpenAI): ",
+            default="https://api.openai.com/v1",
+            state_manager=self.state_manager,
+        )
+        base_url = base_url.strip()
+        if not base_url:
+            base_url = "https://api.openai.com/v1"
 
-        if has_api_key:
-            if not self.state_manager.session.user_config.get("default_model"):
-                await self._step2_default_model()
+        # Step 2: Ask for API key
+        if "openrouter.ai" in base_url.lower():
+            key_prompt = "  OpenRouter API Key: "
+            key_name = "OPENROUTER_API_KEY"
+            default_model = "openrouter:openai/gpt-4o-mini"
+        else:
+            key_prompt = "  API Key: "
+            key_name = "OPENAI_API_KEY"
+            default_model = "openai:gpt-4o"
 
-            # Compare configs to see if anything changed
+        api_key = await ui.input(
+            "step2",
+            pretext=key_prompt,
+            is_password=True,
+            state_manager=self.state_manager,
+        )
+        api_key = api_key.strip()
+
+        if api_key:
+            # Set the environment variable
+            self.state_manager.session.user_config["env"][key_name] = api_key
+            
+            # Set base URL in environment for OpenRouter
+            if "openrouter.ai" in base_url.lower():
+                import os
+                os.environ["OPENAI_BASE_URL"] = base_url
+            
+            # Set default model
+            self.state_manager.session.user_config["default_model"] = default_model
+
+            # Save configuration
             current_config = json.dumps(self.state_manager.session.user_config, sort_keys=True)
             if initial_config != current_config:
                 if user_configuration.save_config(self.state_manager):
-                    message = f"Config saved to: [bold]{self.config_file}[/bold]"
-                    await ui.panel("Finished", message, top=0, border_style=UI_COLORS["success"])
+                    message = (
+                        f"✅ Configuration saved!\n\n"
+                        f"Default model: {default_model}\n"
+                        f"Config file: {self.config_file}\n\n"
+                        f"You can change models anytime with /model"
+                    )
+                    await ui.panel("Setup Complete", message, top=0, border_style=UI_COLORS["success"])
                 else:
                     await ui.error("Failed to save configuration.")
         else:
             await ui.panel(
                 "Setup canceled",
-                "At least one API key is required.",
+                "An API key is required to use TunaCode.",
                 border_style=UI_COLORS["warning"],
             )
 
-    async def _step1_api_keys(self):
-        """Onboarding step 1: Collect API keys."""
-        message = (
-            f"Welcome to {APP_NAME}!\n"
-            "Let's get you setup. First, we'll need to set some environment variables.\n"
-            "Skip the ones you don't need."
-        )
-        await ui.panel("Setup", message, border_style=UI_COLORS["primary"])
-        env_keys = self.state_manager.session.user_config["env"].copy()
-        for key in env_keys:
-            provider = key_to_title(key)
-            val = await ui.input(
-                "step1",
-                pretext=f"  {provider}: ",
-                is_password=True,
-                state_manager=self.state_manager,
-            )
-            val = val.strip()
-            if val:
-                self.state_manager.session.user_config["env"][key] = val
-
-    async def _step2_default_model(self):
-        """Onboarding step 2: Select default model."""
-        message = "Which model would you like to use by default?\n\n"
-
-        model_ids = self.model_registry.list_model_ids()
-        for index, model_id in enumerate(model_ids):
-            message += f"  {index} - {model_id}\n"
-        message = message.strip()
-
-        await ui.panel("Default Model", message, border_style=UI_COLORS["primary"])
-        choice = await ui.input(
-            "step2",
-            pretext="  Default model (#): ",
-            validator=ui.ModelValidator(len(model_ids)),
-            state_manager=self.state_manager,
-        )
-        self.state_manager.session.user_config["default_model"] = model_ids[int(choice)]

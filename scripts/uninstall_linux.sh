@@ -24,10 +24,14 @@ echo "================================"
 
 # Check for --force flag
 FORCE_MODE=false
-if [[ "$1" == "--force" ]]; then
-    FORCE_MODE=true
-    echo -e "${YELLOW}Running in force mode (no confirmations)${NC}"
-fi
+# Handle both direct execution and piped execution with -s flag
+for arg in "$@"; do
+    if [[ "$arg" == "--force" ]]; then
+        FORCE_MODE=true
+        echo -e "${YELLOW}Running in force mode (no confirmations)${NC}"
+        break
+    fi
+done
 
 # Function to safely remove if exists
 safe_remove() {
@@ -96,8 +100,9 @@ else
     echo -e "${BLUE}○${NC} tunacode-cli not installed via pipx"
 fi
 
-# Remove configuration
+# Remove configuration files
 safe_remove "$HOME/.config/tunacode.json" "TunaCode configuration"
+safe_remove "$HOME/.config/tunacode_config.yml" "TinyAgent configuration"
 
 # Remove data directory  
 safe_remove "$HOME/.tunacode" "TunaCode data directory"

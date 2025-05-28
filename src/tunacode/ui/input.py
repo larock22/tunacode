@@ -32,6 +32,7 @@ async def input(
     lexer=None,
     timeoutlen: float = 0.05,
     state_manager: Optional[StateManager] = None,
+    default: str = "",
 ) -> str:
     """
     Prompt for user input using simplified prompt management.
@@ -48,6 +49,7 @@ async def input(
         lexer: Optional lexer for syntax highlighting
         timeoutlen: Timeout length for input
         state_manager: The state manager for session storage
+        default: Default value to pre-fill in the input
 
     Returns:
         User input string
@@ -62,6 +64,7 @@ async def input(
         completer=completer,
         lexer=lexer,
         timeoutlen=timeoutlen,
+        default=default,
     )
 
     # Create prompt manager

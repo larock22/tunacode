@@ -79,6 +79,26 @@ exec "$HOME/.tunacode-venv/bin/tunacode" "$@"
 EOW
 chmod +x "$BIN_DIR/tunacode"
 
+# Set up TunaCode configuration directory
+CONFIG_DIR="${HOME}/.config"
+mkdir -p "$CONFIG_DIR"
+
+# Copy tunacode_config.yml if it doesn't exist
+if [ ! -f "$CONFIG_DIR/tunacode_config.yml" ]; then
+    echo -e "${BLUE}Setting up tinyagent configuration...${NC}"
+    # Download the config file from the repository
+    CONFIG_URL="https://raw.githubusercontent.com/alchemiststudiosDOTai/tunacode/master/tunacode_config.yml"
+    if command -v curl &> /dev/null; then
+        curl -sSL "$CONFIG_URL" -o "$CONFIG_DIR/tunacode_config.yml" 2>/dev/null || true
+    elif command -v wget &> /dev/null; then
+        wget -qO "$CONFIG_DIR/tunacode_config.yml" "$CONFIG_URL" 2>/dev/null || true
+    fi
+    
+    if [ -f "$CONFIG_DIR/tunacode_config.yml" ]; then
+        echo -e "${GREEN}✓${NC} Configuration file created at ~/.config/tunacode_config.yml"
+    fi
+fi
+
 # Check if bin directory is in PATH
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     echo -e "\n${YELLOW}Note: $BIN_DIR is not in your PATH${NC}"

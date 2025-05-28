@@ -46,6 +46,7 @@ rm -f ~/.local/bin/tunacode
 ```bash
 # Remove configuration files
 rm -f ~/.config/tunacode.json
+rm -f ~/.config/tunacode_config.yml
 
 # Remove TunaCode data directory
 rm -rf ~/.tunacode
@@ -82,6 +83,7 @@ pip uninstall tunacode-cli
 
 # Clean up configuration and data (same as Method 1, Step 3)
 rm -f ~/.config/tunacode.json
+rm -f ~/.config/tunacode_config.yml
 rm -rf ~/.tunacode
 ```
 
@@ -93,6 +95,7 @@ pipx uninstall tunacode-cli
 
 # Clean up configuration and data (same as Method 1, Step 3)
 rm -f ~/.config/tunacode.json
+rm -f ~/.config/tunacode_config.yml
 rm -rf ~/.tunacode
 ```
 
@@ -132,8 +135,13 @@ fi
 
 # Remove configuration
 if [ -f ~/.config/tunacode.json ]; then
-    echo "Removing configuration..."
+    echo "Removing TunaCode configuration..."
     rm -f ~/.config/tunacode.json
+fi
+
+if [ -f ~/.config/tunacode_config.yml ]; then
+    echo "Removing TinyAgent configuration..."
+    rm -f ~/.config/tunacode_config.yml
 fi
 
 # Remove data directory
@@ -228,7 +236,7 @@ curl -sSL https://raw.githubusercontent.com/alchemiststudiosDOTai/tunacode/maste
 When you follow this uninstall guide, the following will be removed:
 
 - ✅ TunaCode executable and virtual environment
-- ✅ Configuration files (`~/.config/tunacode.json`)
+- ✅ Configuration files (`~/.config/tunacode.json`, `~/.config/tunacode_config.yml`)
 - ✅ Session data and logs (`~/.tunacode/`)
 - ✅ Command wrapper (`~/.local/bin/tunacode`)
 - ✅ Project-specific directories (`.tunacode/` in projects, if chosen)

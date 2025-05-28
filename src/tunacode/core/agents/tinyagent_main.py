@@ -1,7 +1,9 @@
 """TinyAgent-based agent implementation."""
 
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from tinyagent import ReactAgent
@@ -9,6 +11,25 @@ from tinyagent import ReactAgent
 from tunacode.core.state import StateManager
 from tunacode.tools.tinyagent_tools import read_file, run_command, update_file, write_file
 from tunacode.types import ModelName, ToolCallback
+
+# Set up tinyagent configuration
+# First check if config exists in the package directory
+_package_dir = Path(__file__).parent.parent.parent.parent  # Navigate to tunacode root
+_config_candidates = [
+    _package_dir / "tunacode_config.yml",  # In package root
+    Path.home() / ".config" / "tunacode_config.yml",  # In user config dir
+    Path.cwd() / "tunacode_config.yml",  # In current directory
+]
+
+# Find the first existing config file
+for config_path in _config_candidates:
+    if config_path.exists():
+        os.environ["TINYAGENT_CONFIG"] = str(config_path)
+        break
+else:
+    # If no config found, we'll rely on tinyagent to handle it
+    # This prevents the immediate error on import
+    pass
 
 
 def get_or_create_react_agent(model: ModelName, state_manager: StateManager) -> ReactAgent:
