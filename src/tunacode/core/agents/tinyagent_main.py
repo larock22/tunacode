@@ -58,11 +58,9 @@ def get_or_create_react_agent(model: ModelName, state_manager: StateManager) -> 
                 if state_manager.session.user_config["env"].get(key_name):
                     os.environ[key_name] = state_manager.session.user_config["env"][key_name]
 
-        # Create new ReactAgent with the actual model name and tools
-        agent = ReactAgent(
-            model_override=actual_model,
-            tools=[read_file, write_file, update_file, run_command]
-        )
+        # Create new ReactAgent with tools
+        # Note: tinyAgent gets model from environment variables, not constructor
+        agent = ReactAgent(tools=[read_file, write_file, update_file, run_command])
 
         # Add MCP compatibility method
         @asynccontextmanager
