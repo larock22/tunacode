@@ -14,7 +14,6 @@ from tinyagent import ReactAgent
 
 from tunacode.core.state import StateManager
 from tunacode.tools.tinyagent_tools import read_file, run_command, update_file, write_file
-from tunacode.tools.tinyagent_tools import _set_state_manager  # Import the setter
 from tunacode.types import ModelName, ToolCallback
 
 # Set up tinyagent configuration
@@ -49,9 +48,6 @@ def get_or_create_react_agent(model: ModelName, state_manager: StateManager) -> 
         ReactAgent instance configured for the model
     """
     agents = state_manager.session.agents
-    
-    # Set the state manager globally so tools can access it
-    _set_state_manager(state_manager)
 
     if model not in agents:
         # Parse model string to determine provider and actual model name

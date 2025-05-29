@@ -176,7 +176,7 @@ class TunaCodeCommand(SimpleCommand):
         from tunacode.constants import UI_COLORS
         from tunacode.utils.file_utils import DotDict
 
-        from ..tools.read_file import read_file
+        from ..tools.tinyagent_tools import read_file
         from ..utils.bm25 import BM25, tokenize
         from ..utils.text_utils import ext_to_lang
 
@@ -206,7 +206,7 @@ class TunaCodeCommand(SimpleCommand):
 
         for idx in ranked:
             file_path = paths[idx]
-            content = await read_file(str(file_path))
+            content = read_file(str(file_path))
             lang = ext_to_lang(str(file_path))
             await ui.panel(
                 str(file_path),
