@@ -50,7 +50,9 @@ def main(
             await setup(run_setup, state_manager, cli_config)
             await repl(state_manager)
         except Exception as e:
-            await ui.error(str(e))
+            import traceback
+
+            await ui.error(f"{str(e)}\n\nTraceback:\n{traceback.format_exc()}")
 
         has_update, latest_version = await update_task
         if has_update:

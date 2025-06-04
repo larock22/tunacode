@@ -79,16 +79,31 @@ exec "$HOME/.tunacode-venv/bin/tunacode" "$@"
 EOW
 chmod +x "$BIN_DIR/tunacode"
 
+# --- auto-fallback if not in PATH ---
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+  # If we're root, drop a symlink into /usr/local/bin
+  if [[ $EUID -eq 0 ]]; then
+    ln -s "$BIN_DIR/tunacode" /usr/local/bin/tunacode 2>/dev/null || true
+  else
+    # Non-root: append to ~/.profile so future logins get it
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.profile"
+  fi
+fi
+
 # Create config directory (for user config storage)
 CONFIG_DIR="${HOME}/.config"
 mkdir -p "$CONFIG_DIR"
 
-# Check if bin directory is in PATH
+# Check if bin directory is in PATH (after our auto-fallback)
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-    echo -e "\n${YELLOW}Note: $BIN_DIR is not in your PATH${NC}"
-    echo "Add this line to your ~/.bashrc or ~/.zshrc:"
-    echo -e "${GREEN}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}"
-    echo -e "\nThen run: ${GREEN}source ~/.bashrc${NC} (or source ~/.zshrc)"
+    if [[ $EUID -eq 0 ]]; then
+        # Root user with symlink
+        echo -e "\n${GREEN}✓${NC} Created symlink at /usr/local/bin/tunacode"
+    else
+        # Non-root user with ~/.profile update
+        echo -e "\n${GREEN}✓${NC} Added $BIN_DIR to PATH in ~/.profile"
+        echo -e "${YELLOW}Note:${NC} Run ${GREEN}source ~/.profile${NC} or log out and back in to use 'tunacode' command"
+    fi
 fi
 
 echo -e "\n${GREEN}✨ Installation complete!${NC}"

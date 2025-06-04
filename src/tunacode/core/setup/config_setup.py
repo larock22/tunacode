@@ -75,6 +75,12 @@ class ConfigSetup(BaseSetup):
         else:
             if force_setup:
                 await ui.muted("Running setup process, resetting config")
+                # Ensure user_config is properly initialized
+                if (
+                    not hasattr(self.state_manager.session, "user_config")
+                    or self.state_manager.session.user_config is None
+                ):
+                    self.state_manager.session.user_config = {}
                 self.state_manager.session.user_config = DEFAULT_USER_CONFIG.copy()
                 user_configuration.save_config(
                     self.state_manager
@@ -150,7 +156,9 @@ class ConfigSetup(BaseSetup):
 
         # Only continue if at least one API key was provided
         env = self.state_manager.session.user_config.get("env", {})
-        has_api_key = any(key.endswith("_API_KEY") and env.get(key) for key in env)
+        has_api_key = (
+            any(key.endswith("_API_KEY") and env.get(key) for key in env) if env else False
+        )
 
         if has_api_key:
             if not self.state_manager.session.user_config.get("default_model"):
@@ -179,7 +187,15 @@ class ConfigSetup(BaseSetup):
             "Skip the ones you don't need."
         )
         await ui.panel("Setup", message, border_style=UI_COLORS["primary"])
-        env_keys = self.state_manager.session.user_config["env"].copy()
+        env_config = self.state_manager.session.user_config.get("env")
+        if not env_config:
+            self.state_manager.session.user_config["env"] = DEFAULT_USER_CONFIG["env"].copy()
+            env_config = self.state_manager.session.user_config["env"]
+
+        # Ensure env_config is not None before copying
+        if env_config is None:
+            env_config = {}
+        env_keys = env_config.copy()
         for key in env_keys:
             provider = key_to_title(key)
             val = await ui.input(
@@ -248,6 +264,10 @@ class ConfigSetup(BaseSetup):
 
         # Apply CLI overrides
         if self.cli_config.get("key"):
+            # Ensure env dict exists
+            if "env" not in self.state_manager.session.user_config:
+                self.state_manager.session.user_config["env"] = {}
+
             # Determine which API key to set based on the model or baseurl
             if self.cli_config.get("baseurl") and "openrouter" in self.cli_config["baseurl"]:
                 self.state_manager.session.user_config["env"]["OPENROUTER_API_KEY"] = (
