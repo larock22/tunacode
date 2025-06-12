@@ -51,4 +51,6 @@ async def test_orchestrator_synthesizes_summary():
         with patch.object(orch, "_run_sub_task", return_value=fake_run):
             results = await orch.run("req")
             assert len(results) == 2
-            assert "task 1" in results[-1].result.output.lower()
+            # Check that fallback response was generated
+            assert "orchestrator completed all tasks" in results[-1].result.output.lower()
+            assert "executed 1/1 tasks" in results[-1].result.output.lower()

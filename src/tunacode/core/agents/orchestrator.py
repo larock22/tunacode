@@ -13,7 +13,7 @@ import asyncio
 import itertools
 from typing import List
 
-from ...types import AgentRun, ModelName
+from ...types import AgentRun, FallbackResponse, ModelName, ResponseState
 from ..llm.planner import make_plan
 from ..state import StateManager
 from . import main as agent_main
@@ -69,6 +69,9 @@ class OrchestratorAgent:
         console = Console()
         model = model or self.state.session.current_model
 
+        # Track response state across all sub-tasks
+        response_state = ResponseState()
+
         # Show orchestrator is starting
         console.print(
             "\n[cyan]Orchestrator Mode: Analyzing request and creating execution plan...[/cyan]"
@@ -80,10 +83,28 @@ class OrchestratorAgent:
         console.print(f"\n[cyan]Executing plan with {len(tasks)} tasks...[/cyan]")
 
         results: List[AgentRun] = []
+        task_progress = []
+
         for mutate_flag, group in itertools.groupby(tasks, key=lambda t: t.mutate):
             if mutate_flag:
                 for t in group:
-                    results.append(await self._run_sub_task(t, model))
+                    result = await self._run_sub_task(t, model)
+                    results.append(result)
+
+                    # Track task progress
+                    task_progress.append(
+                        {
+                            "task": t,
+                            "completed": True,
+                            "had_output": hasattr(result, "result")
+                            and result.result
+                            and getattr(result.result, "output", None),
+                        }
+                    )
+
+                    # Check if this task produced user-visible output
+                    if hasattr(result, "response_state"):
+                        response_state.has_user_response |= result.response_state.has_user_response
             else:
                 # Show parallel execution
                 task_list = list(group)
@@ -92,26 +113,101 @@ class OrchestratorAgent:
                         f"\n[dim][Parallel Execution] Running {len(task_list)} read-only tasks concurrently...[/dim]"
                     )
                 coros = [self._run_sub_task(t, model) for t in task_list]
-                results.extend(await asyncio.gather(*coros))
+                parallel_results = await asyncio.gather(*coros)
+                results.extend(parallel_results)
+
+                # Track parallel task progress
+                for t, result in zip(task_list, parallel_results):
+                    task_progress.append(
+                        {
+                            "task": t,
+                            "completed": True,
+                            "had_output": hasattr(result, "result")
+                            and result.result
+                            and getattr(result.result, "output", None),
+                        }
+                    )
+
+                    # Check if this task produced user-visible output
+                    if hasattr(result, "response_state"):
+                        response_state.has_user_response |= result.response_state.has_user_response
 
         console.print("\n[green]Orchestrator completed all tasks successfully![/green]")
 
-        has_output = any(
+        # Check if we need a fallback response
+        has_any_output = any(
             hasattr(r, "result") and r.result and getattr(r.result, "output", None) for r in results
         )
 
-        if results and not has_output:
-            lines = [f"Task {i + 1} completed" for i in range(len(results))]
-            summary = "\n".join(lines)
+        fallback_enabled = self.state.session.user_config.get("settings", {}).get(
+            "fallback_response", True
+        )
 
-            class SynthResult:
-                def __init__(self, output: str):
+        # Use has_any_output as the primary check since response_state might not be set for all agents
+        if not has_any_output and fallback_enabled:
+            # Generate a detailed fallback response
+            completed_count = sum(1 for tp in task_progress if tp["completed"])
+            output_count = sum(1 for tp in task_progress if tp["had_output"])
+
+            fallback = FallbackResponse(
+                summary="Orchestrator completed all tasks but no final response was generated.",
+                progress=f"Executed {completed_count}/{len(tasks)} tasks successfully",
+            )
+
+            # Add task details based on verbosity
+            verbosity = self.state.session.user_config.get("settings", {}).get(
+                "fallback_verbosity", "normal"
+            )
+
+            if verbosity in ["normal", "detailed"]:
+                # List what was done
+                if task_progress:
+                    fallback.issues.append(f"Tasks executed: {completed_count}")
+                    if output_count == 0:
+                        fallback.issues.append("No tasks produced visible output")
+
+                    if verbosity == "detailed":
+                        # Add task descriptions
+                        for i, tp in enumerate(task_progress, 1):
+                            task_type = "WRITE" if tp["task"].mutate else "READ"
+                            status = "✓" if tp["completed"] else "✗"
+                            fallback.issues.append(
+                                f"{status} Task {i} [{task_type}]: {tp['task'].description}"
+                            )
+
+            # Suggest next steps
+            fallback.next_steps.append("Review the task execution above for any errors")
+            fallback.next_steps.append(
+                "Try running individual tasks separately for more detailed output"
+            )
+
+            # Create synthesized response
+            synthesis_parts = [fallback.summary, ""]
+
+            if fallback.progress:
+                synthesis_parts.append(f"Progress: {fallback.progress}")
+
+            if fallback.issues:
+                synthesis_parts.append("\nDetails:")
+                synthesis_parts.extend(f"  • {issue}" for issue in fallback.issues)
+
+            if fallback.next_steps:
+                synthesis_parts.append("\nNext steps:")
+                synthesis_parts.extend(f"  • {step}" for step in fallback.next_steps)
+
+            synthesis = "\n".join(synthesis_parts)
+
+            class FallbackResult:
+                def __init__(self, output: str, response_state: ResponseState):
                     self.output = output
+                    self.response_state = response_state
 
-            class SynthRun:
-                def __init__(self):
-                    self.result = SynthResult(summary)
+            class FallbackRun:
+                def __init__(self, synthesis: str, response_state: ResponseState):
+                    self.result = FallbackResult(synthesis, response_state)
+                    self.response_state = response_state
 
-            results.append(SynthRun())
+            response_state.has_final_synthesis = True
+            results.append(FallbackRun(synthesis, response_state))
 
         return results

@@ -9,16 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Fallback response mechanism when agent reaches maximum iterations without user response
+- Comprehensive fallback response mechanism when agent reaches maximum iterations without user response (#22)
+  - Response state tracking across all agent types (main agent, readonly agent, orchestrator)
+  - Configurable fallback verbosity levels (minimal, normal, detailed)
+  - Context extraction showing tool calls, files modified, and commands run in fallback responses
 - Configuration option `fallback_response` to enable/disable fallback responses
-- Response state tracking to determine if user-visible response was produced
 - Automatic synthesis of incomplete task status when max iterations reached
+
+### Fixed
+
+- Orchestrator bug where fallback responses appeared even when tasks produced output (#22)
+- Response state tracking to ensure fallback only triggers when no user-visible output exists
 
 ### Changed
 
 - Modified CLI commands processing
 - Updated REPL functionality
 - Enhanced output display formatting
+- Improved fallback response mechanism to handle edge cases across different agent types
 
 ## [0.0.23] - 2025-01-06
 

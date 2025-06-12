@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from ...tools.grep import grep
 from ...tools.read_file import read_file
-from ...types import AgentRun, ModelName
+from ...types import AgentRun, ModelName, ResponseState
 from ..state import StateManager
 
 if TYPE_CHECKING:
@@ -42,10 +42,24 @@ class ReadOnlyAgent:
     async def process_request(self, request: str) -> AgentRun:
         """Process a request using only read-only tools."""
         agent = self._get_agent()
+        response_state = ResponseState()
 
         # Use iter() like main.py does to get the full run context
         async with agent.iter(request) as agent_run:
-            async for _ in agent_run:
-                pass  # Let it complete
+            async for node in agent_run:
+                # Check if this node produced user-visible output
+                if hasattr(node, "result") and node.result and hasattr(node.result, "output"):
+                    if node.result.output:
+                        response_state.has_user_response = True
 
-        return agent_run
+        # Wrap the agent run to include response_state
+        class AgentRunWithState:
+            def __init__(self, wrapped_run):
+                self._wrapped = wrapped_run
+                self.response_state = response_state
+
+            def __getattr__(self, name):
+                # Delegate all other attributes to the wrapped object
+                return getattr(self._wrapped, name)
+
+        return AgentRunWithState(agent_run)
