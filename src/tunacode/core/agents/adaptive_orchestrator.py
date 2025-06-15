@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from ...types import AgentRun, ModelName, ResponseState
-from ..analysis import (Confidence, ConstrainedPlanner, FeedbackDecision, FeedbackLoop,
-                        RequestAnalyzer)
+from ..analysis import ConstrainedPlanner, FeedbackDecision, FeedbackLoop
+from ..analysis.hybrid_request_analyzer import HybridRequestAnalyzer
 from ..state import StateManager
 from . import main as agent_main
 from .readonly import ReadOnlyAgent
@@ -34,7 +34,7 @@ class AdaptiveOrchestrator:
 
     def __init__(self, state_manager: StateManager):
         self.state = state_manager
-        self.analyzer = RequestAnalyzer()
+        self.analyzer = HybridRequestAnalyzer(model=state_manager.session.current_model)
         self.planner = ConstrainedPlanner(state_manager)
         self.feedback_loop = FeedbackLoop(state_manager)
         self.executor = ThreadPoolExecutor(max_workers=4)
@@ -74,14 +74,8 @@ class AdaptiveOrchestrator:
                 f"[dim]Project: {project_context.project_type.value} {framework} | Sources: {sources}[/dim]"
             )
 
-            # Step 2: THINK - Analyze the request with context
-            intent = self.analyzer.analyze(request)
-            console.print(
-                f"[dim]Request type: {intent.request_type.value}, Confidence: {intent.confidence.name}[/dim]"
-            )
-
-            # Generate initial task plan with context awareness
-            tasks = await self._get_initial_tasks(request, intent, model)
+            # Step 2: THINK - Get tasks from LLM planner
+            tasks = await self._get_initial_tasks(request, None, model)
             if not tasks:
                 console.print("[yellow]No tasks generated. Falling back to regular mode.[/yellow]")
                 return []
@@ -101,22 +95,30 @@ class AdaptiveOrchestrator:
     async def _get_initial_tasks(
         self, request: str, intent: Any, model: ModelName
     ) -> Optional[List[Dict[str, Any]]]:
-        """Get initial tasks either from analyzer or planner."""
+        """Get tasks from LLM planner."""
         from rich.console import Console
 
         console = Console()
 
-        # Try deterministic planning first
-        if intent.confidence.value >= Confidence.MEDIUM.value:
-            tasks = self.analyzer.generate_simple_tasks(intent)
-            if tasks:
-                console.print(f"[dim]Generated {len(tasks)} tasks deterministically[/dim]")
-                return tasks
-
-        # Fall back to LLM planning
-        console.print("[dim]Using LLM planner for complex request[/dim]")
+        # Just use LLM planning for everything
+        console.print("[dim]Using LLM planner[/dim]")
         try:
-            task_objects = await self.planner.plan(request, model)
+            # Build context from session state
+            context_parts = []
+
+            # Add files in context
+            if self.state.session.files_in_context:
+                files_list = list(self.state.session.files_in_context)
+                context_parts.append(f"Files currently in context: {', '.join(files_list)}")
+
+            # Add recent tool calls if any
+            if self.state.session.tool_calls:
+                recent_tools = [tc["tool"] for tc in self.state.session.tool_calls[-3:]]
+                context_parts.append(f"Recent operations: {', '.join(recent_tools)}")
+
+            context = "\n".join(context_parts) if context_parts else None
+
+            task_objects = await self.planner.plan(request, model, context=context)
             # Convert Task objects to dicts
             return [
                 {
@@ -197,6 +199,13 @@ class AdaptiveOrchestrator:
                 if exec_result.result and not exec_result.error:
                     self._extract_findings(exec_result, findings)
 
+                    # Track files created/modified for context
+                    tool = exec_result.task.get("tool")
+                    if tool in ["write_file", "update_file"]:
+                        file_path = exec_result.task.get("args", {}).get("file_path")
+                        if file_path:
+                            self.state.session.files_in_context.add(file_path)
+
             # THINK phase of the loop - analyze and adapt
             # Get project context for smarter decisions
             project_context = self.analyzer.project_context.detect_context()
@@ -208,18 +217,8 @@ class AdaptiveOrchestrator:
                 )
 
                 if followup_tasks:
-                    # Convert Task objects to dicts
-                    new_tasks = []
-                    for task in followup_tasks[:3]:  # Limit follow-ups per iteration
-                        new_tasks.append(
-                            {
-                                "id": task.id,
-                                "description": task.description,
-                                "mutate": task.mutate,
-                                "tool": task.tool,
-                                "args": task.args,
-                            }
-                        )
+                    # Task generator already returns dicts, just limit them
+                    new_tasks = followup_tasks[:3]  # Limit follow-ups per iteration
 
                     if new_tasks:
                         console.print(
@@ -375,7 +374,12 @@ class AdaptiveOrchestrator:
             tool_request = self._format_tool_request(task)
         else:
             # This is a general request
-            tool_request = task["description"]
+            # Add context about recent operations
+            context_info = ""
+            if self.state.session.files_in_context:
+                files_list = list(self.state.session.files_in_context)
+                context_info = f" (context: working with {', '.join(files_list)})"
+            tool_request = task["description"] + context_info
 
         # Execute using appropriate agent
         if task.get("mutate", False):
@@ -399,14 +403,36 @@ class AdaptiveOrchestrator:
         elif tool == "grep":
             pattern = args.get("pattern", "")
             directory = args.get("directory", ".")
-            return f"Search for '{pattern}' in {directory}"
+            include_files = args.get("include_files", "")
+            use_regex = args.get("use_regex", False)
+
+            # Build a more detailed request
+            request_parts = [f"Search for '{pattern}' in {directory}"]
+            if include_files:
+                request_parts.append(f"in files matching {include_files}")
+            if use_regex:
+                request_parts.append("using regex")
+
+            return " ".join(request_parts)
         elif tool == "list_dir":
             directory = args.get("directory", ".")
             return f"List the contents of directory {directory}"
         elif tool == "write_file":
-            return f"Create file {args.get('file_path', '')} with appropriate content"
+            file_path = args.get("file_path", "")
+            content = args.get("content", "")
+            if content:
+                # Include the actual content in the request
+                return f"Create file {file_path} with the following content:\n{content}"
+            else:
+                return f"Create file {file_path} with appropriate content"
         elif tool == "update_file":
-            return f"Update {args.get('file_path', '')} as needed"
+            file_path = args.get("file_path", "")
+            target = args.get("target", "")
+            patch = args.get("patch", "")
+            if target and patch:
+                return f"Update {file_path} by replacing '{target}' with '{patch}'"
+            else:
+                return f"Update {file_path} as described: {task['description']}"
         elif tool == "run_command":
             return f"Run command: {args.get('command', '')}"
         elif tool == "bash":

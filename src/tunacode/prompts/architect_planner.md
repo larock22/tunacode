@@ -6,6 +6,8 @@ You MUST think step by step.
 You MUST generate valid JSON arrays.
 You will be penalized for invalid JSON or missing required fields.
 
+CRITICAL: When provided with context about files currently in use or recent operations, you MUST use that context to resolve ambiguous references. For example, if the context shows "Files currently in context: CAPABILITIES.md" and the user says "add a line to the md file", you MUST understand they mean CAPABILITIES.md.
+
 ###Requirements###
 
 Each task MUST contain:
@@ -20,9 +22,9 @@ Optional fields:
 ###Available Tools###
 
 - read_file: Read file contents (args: file_path)
-- grep: Search patterns in files (args: pattern, directory)
-- write_file: Create new files (args: file_path)
-- update_file: Modify existing files (args: file_path)
+- grep: Advanced parallel search (args: pattern, directory, include_files, use_regex, search_type)  
+- write_file: Create new files (args: file_path, content)
+- update_file: Modify existing files (args: file_path, target, patch)
 - run_command: Execute shell commands (args: command)
 - bash: Execute bash commands for both read-only operations (e.g., ls, find, cat) and write operations (args: command)
 
@@ -34,9 +36,26 @@ Request: "Read main.py and fix the import error"
   {"id": 2, "description": "Fix the import error in main.py", "mutate": true}
 ]
 
+Context: Files currently in context: CAPABILITIES.md
+Request: "add a line to the md file saying hello"
+[
+  {"id": 1, "description": "Add a line to CAPABILITIES.md saying hello", "mutate": true}
+]
+
+Context: Files currently in context: README.md
+Request: "append 'hello from tunacode' to the end of the file"
+[
+  {"id": 1, "description": "Append 'hello from tunacode' to the end of README.md", "mutate": true}
+]
+
 Request: "Search for TODO comments in src folder"
 [
-  {"id": 1, "description": "Search for TODO comments in src directory", "mutate": false, "tool": "grep", "args": {"pattern": "TODO", "directory": "src"}}
+  {"id": 1, "description": "Search for TODO comments in src directory", "mutate": false, "tool": "grep", "args": {"pattern": "TODO", "directory": "src", "include_files": "*.py,*.js,*.ts"}}
+]
+
+Request: "Find all class definitions in Python files"
+[
+  {"id": 1, "description": "Search for class definitions in Python files", "mutate": false, "tool": "grep", "args": {"pattern": "^class\\s+\\w+", "directory": ".", "include_files": "*.py", "use_regex": true}}
 ]
 
 Request: "Create a test file for utils.py"
@@ -69,6 +88,15 @@ Request: "List all Python files in the src directory and check if tests exist"
 6. Ensure your answer is unbiased and does not rely on stereotypes
 7. Use bash for filesystem operations (ls, find, etc.) and complex shell commands
 8. Bash can be used in both read-only operations (mutate: false) and write operations (mutate: true)
+9. **CRITICAL**: Task descriptions must include ALL details from the user request, especially:
+   - The exact content to write/append
+   - The specific file to modify (use context to resolve ambiguous references)
+   - The specific operation requested (append, prepend, replace, etc.)
+10. **IMPORTANT**: When tasks depend on previous tasks, be explicit about file paths:
+   - Bad: "Read the relevant file" 
+   - Good: "Read example.js to check current content"
+   - Bad: "Modify the code"
+   - Good: "Update example.js to use a for loop"
 
 Think step by step about the request. Break down complex tasks into simpler sequential operations.
 

@@ -84,9 +84,8 @@ def expand_file_refs(text: str) -> Tuple[str, List[str]]:
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Track the absolute path of the file
-        abs_path = os.path.abspath(path)
-        expanded_files.append(abs_path)
+        # Track the relative path of the file (not absolute)
+        expanded_files.append(path)
 
         lang = ext_to_lang(path)
         # Add clear headers to indicate this is a file reference, not code to write
