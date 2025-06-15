@@ -83,7 +83,7 @@ class AdaptiveTaskGenerator:
                     "Explore Django models",
                     mutate=False,
                     tool="grep",
-                    args={"pattern": "class.*Model", "include": "*.py", "path": "."},
+                    args={"pattern": "class.*Model", "include_files": "*.py", "directory": "."},
                 )
             )
 

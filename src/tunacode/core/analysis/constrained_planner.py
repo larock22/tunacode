@@ -69,6 +69,11 @@ class ConstrainedPlanner:
         if context:
             full_prompt = f"Context: {context}\n\nRequest: {request}"
 
+        # Log what we're sending to LLM
+        console.print("\n[blue]━━━ ARCHITECT MODE: SENDING TO LLM ━━━[/blue]")
+        console.print(f"[cyan]User Prompt:[/cyan] {full_prompt}")
+        console.print("[blue]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/blue]")
+
         # Try to get a valid plan with retries
         last_error = None
         for attempt in range(self.max_retries):
@@ -88,6 +93,11 @@ class ConstrainedPlanner:
                 # Get the response
                 result = await planner.run(full_prompt)
                 response_text = result.data.strip()
+
+                # Log what we got back
+                console.print("\n[green]━━━ ARCHITECT MODE: LLM RESPONSE ━━━[/green]")
+                console.print(response_text)
+                console.print("[green]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/green]")
 
                 # Remove any markdown code blocks if present
                 if response_text.startswith("```"):

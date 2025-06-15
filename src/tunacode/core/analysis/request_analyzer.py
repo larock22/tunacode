@@ -175,7 +175,7 @@ class RequestAnalyzer:
                     if request_type not in matches_by_type:
                         matches_by_type[request_type] = []
                     matches_by_type[request_type].append((match, confidence))
-                    
+
                     if confidence.value > best_confidence.value:
                         best_match = (request_type, match, confidence)
                         best_confidence = confidence
@@ -365,7 +365,7 @@ class RequestAnalyzer:
                 analyze_desc = f"Summarize the contents of {', '.join(intent.file_paths) if intent.file_paths else 'the file'}"
             else:
                 analyze_desc = "Explain how the code works"
-            
+
             tasks.append(
                 {
                     "id": task_id,
